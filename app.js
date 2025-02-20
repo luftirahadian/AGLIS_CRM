@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root', // Ganti dengan username database Anda
-    password: 'root', // Ganti dengan password database Anda
+    password: 'Gapura#2024!!', // Ganti dengan password database Anda
     database: 'crm_ticketing'
 });
 
