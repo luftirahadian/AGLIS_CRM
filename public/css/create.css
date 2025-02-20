@@ -1,0 +1,17 @@
+/* public/css/create.css */
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+.create-container {
+    width: 100%;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.btn-save, .btn-back {
+    margin-top: 20px;
+}

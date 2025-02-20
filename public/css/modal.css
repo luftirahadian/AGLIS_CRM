@@ -1,0 +1,52 @@
+/* status */
+.status-highlight {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.status-highlight.open {
+    color: white;
+    background-color: #dc3545;
+}
+
+.status-highlight.close {
+    color: white;
+    background-color: #61cf7a;
+}
+
+.status-label {
+    padding: 5px 10px; /* Menambahkan padding pada label status */
+    border-radius: 5px; /* Membuat sudut label menjadi bulat */
+    color: white; /* Warna teks putih untuk label */
+}
+
+
+/* modal */
+.modal-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100% - 1rem);
+}
+
+
+/* card */
+.card-body {
+    padding: 20px; /* Menambah padding untuk ruang yang lebih baik */
+    background-color: #f8f9fa; /* Warna latar belakang yang lebih terang */
+    border-radius: 5px; /* Sudut yang lebih halus */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Bayangan halus untuk efek kedalaman */
+}
+
+.card-title {
+    font-size: 1.5rem; /* Ukuran font yang lebih besar untuk judul */
+    margin-bottom: 15px; /* Jarak bawah untuk pemisahan yang lebih baik */
+    color: #343a40; /* Warna teks gelap */
+}
+
+h5.card-title {
+    color: black;
+    font-weight: bolder;
+    font-size: 1.5rem;
+}

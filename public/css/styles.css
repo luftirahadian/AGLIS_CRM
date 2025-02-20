@@ -1,0 +1,242 @@
+/* body */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+    font-size: 0.875rem; /* Ukuran font kecil untuk body */
+}
+
+/* table */
+.table {
+    margin-top: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table th {
+    background-color: #007bff;
+    color: white;
+    text-align: center; 
+}
+
+.table tr {
+    font-size: 14px;
+}
+
+.table tr td {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.table td.status-column {
+    text-align: center;
+}
+
+.table td.action-column {
+    text-align: center;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f5f5f5; 
+}
+
+/* status */
+.status-highlight {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.status-highlight.open {
+    color: white;
+    background-color: #dc3545;
+}
+
+.status-highlight.close {
+    color: white;
+    background-color: #61cf7a;
+}
+
+.status-label {
+    padding: 5px 10px; /* Menambahkan padding pada label status */
+    border-radius: 5px; /* Membuat sudut label menjadi bulat */
+    color: white; /* Warna teks putih untuk label */
+}
+
+
+/* modal */
+.modal-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100% - 1rem);
+}
+
+
+/* card */
+.card-body {
+    padding: 20px; /* Menambah padding untuk ruang yang lebih baik */
+    background-color: #f8f9fa; /* Warna latar belakang yang lebih terang */
+    border-radius: 5px; /* Sudut yang lebih halus */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Bayangan halus untuk efek kedalaman */
+}
+
+.card-title {
+    font-size: 1.5rem; /* Ukuran font yang lebih besar untuk judul */
+    margin-bottom: 15px; /* Jarak bawah untuk pemisahan yang lebih baik */
+    color: #343a40; /* Warna teks gelap */
+}
+
+h5.card-title {
+    color: black;
+    font-weight: bolder;
+    font-size: 1.5rem;
+}
+
+/* form */
+.form-group {
+    margin-bottom: 1.5rem; /* Jarak antar elemen form */
+}
+
+.form-control {
+    border: 1px solid #ced4da; /* Border yang lebih halus */
+    border-radius: 5px; /* Sudut yang lebih halus */
+    transition: border-color 0.3s; /* Transisi halus saat fokus */
+}
+
+.form-control:focus {
+    border-color: #007bff; /* Warna border saat fokus */
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Bayangan saat fokus */
+}
+
+
+/* tombol */
+.btn {
+    border-radius: 5px; /* Sudut tombol yang lebih halus */
+    padding: 10px 15px; /* Padding yang lebih baik untuk tombol */
+}
+
+.btn-primary {
+    background-color: #007bff; /* Warna latar belakang tombol */
+    border-color: #007bff; /* Warna border tombol */
+}
+
+.btn-primary:hover {
+    background-color: #0056b3; /* Warna latar belakang saat hover */
+    border-color: #0056b3; /* Warna border saat hover */
+}
+
+.btn-custom {
+    padding: 12px 20px; /* Menambah padding untuk ukuran tombol yang lebih besar */
+    font-size: 1.2rem; /* Ukuran font yang lebih besar */
+}
+
+/* navbar */
+.navbar {
+    background-color: #007bff;
+}
+
+.nav-link {
+    color: black !important;
+}
+
+.nav-link.active {
+    background-color: #007bff; /* Warna biru untuk menu aktif */
+    color: white; /* Warna teks putih untuk kontras */
+}
+
+
+/* navbar */
+.main-header .nav-link:hover {
+    background-color: #565656; /* Warna saat hover */
+}
+
+.nav-treeview .nav-item .nav-link {
+    padding-left: 30px; /* Atur jarak sisi kiri submenu */
+}
+
+/* .main-sidebar {
+    background: linear-gradient(to bottom, #343a40, #1d2124); 
+} */
+
+.border-right {
+    border-right: 1px solid #dee2e6;
+    padding-right: 15px;
+}
+
+#ticketDetailsContentLeft, #ticketDetailsContentRight {
+    padding: 15px;
+}
+
+.d-flex {
+    margin-bottom: 10px;
+}
+
+.bg-danger {
+    background-color: red; /* Warna latar belakang merah untuk status Open */
+}
+
+.bg-success {
+    background-color: green; /* Warna latar belakang hijau untuk status Close */
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2; /* Warna latar belakang untuk baris genap */
+}
+
+/* styles.css */
+.main-footer {
+    background-color: #f1f1f1; /* Warna latar belakang footer */
+    padding: 10px; /* Padding untuk footer */
+    text-align: center; /* Pusatkan teks */
+    position: fixed; /* Tetap di posisi */
+    bottom: 0; /* Tempatkan di bagian bawah */
+    left: 0; /* Tempatkan di sisi kiri */
+    right: 0; /* Tempatkan di sisi kanan */
+    z-index: 1000; /* Pastikan footer di atas konten lainnya */
+}
+
+/* Tambahkan margin bawah pada konten utama untuk menghindari tumpang tindih */
+.content-wrapper {
+    margin-bottom: 60px; /* Sesuaikan dengan tinggi footer */
+}
+
+/* styles.css */
+.main-header {
+    background-color: #ffffff; /* Warna latar belakang navbar putih */
+}
+
+.main-sidebar {
+    position: fixed; /* Tetap di posisi */
+    top: 0; /* Tempatkan di bagian atas */
+    bottom: 0; /* Tempatkan di bagian bawah */
+    left: 0; /* Tempatkan di sisi kiri */
+    z-index: 100; /* Pastikan sidebar di atas konten lainnya */
+}
+
+.sidebar-dark-primary {
+    background-color: #007bff; /* Warna latar belakang sidebar */
+}
+
+.nav-sidebar .nav-link {
+    color: #c2c7d0; /* Warna teks link */
+}
+
+.nav-sidebar .nav-link.active {
+    background-color: #0056b3; /* Warna latar belakang untuk link aktif */
+    color: #fff; /* Warna teks untuk link aktif */
+}
+
+.nav-sidebar .nav-link:hover {
+    background-color: #0056b3; /* Warna latar belakang saat hover */
+    color: #fff; /* Warna teks saat hover */
+}
+
+/* Gaya kompak */
+.nav-sidebar .nav-item {
+    padding: 0.5rem 1rem; /* Padding untuk item nav */
+}
+

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Tiket - AGLIS Ticketing System</title>
+    <link rel="stylesheet" href="/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body class="control-sidebar-slide-open layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
+<div class="wrapper">
+    <%- include('partials/header.ejs') %>
+    <%- include('partials/sidebar.ejs') %>
+    
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        <section class="content">
+            <div class="container-fluid">
+                <% if (userRole === 'admin') { %>
+                    <h1>Selamat datang, Admin!</h1>
+                <% } else { %>
+                    <h1>Selamat datang, Pengguna!</h1>
+                <% } %>
+                <h1>Edit Tiket</h1>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Edit Tiket</h3>
+                    </div>
+                    <div class="card-body">
+                        <form action="/ticket/update/<%= ticket.id %>" method="POST">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                <label for="no_tiket">No. Tiket:</label>
+                                <input type="text" id="no_tiket" name="no_tiket" class="form-control" value="<%= ticket.no_tiket %>" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="cid">ID Pelanggan:</label>
+                                <input type="text" id="cid" name="cid" class="form-control" value="<%= ticket.cid %>" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="nama">Nama:</label>
+                                <input type="text" id="nama" name="nama" class="form-control" value="<%= ticket.nama %>" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="alamat">Alamat:</label>
+                                <input type="text" id="alamat" name="alamat" class="form-control" value="<%= ticket.alamat %>" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="no_hp">No HP:</label>
+                                <input type="text" id="no_hp" name="no_hp" class="form-control" value="<%= ticket.no_hp %>" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="komplain">Komplain:</label>
+                                <textarea id="komplain" name="komplain" class="form-control" readonly><%= ticket.komplain %></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="pelapor">Dilaporkan Oleh:</label>
+                                <input type="text" id="pelapor" name="pelapor" class="form-control" value="<%= ticket.pelapor %>" readonly>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="tanggalLaporan">Tanggal Laporan:</label>
+                                <input type="text" id="tanggalLaporan" class="form-control" value="<%= ticket.tanggal_laporan ? new Date(ticket.tanggal_laporan).toISOString().split('T')[0] : '' %>" readonly>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="jenis_gangguan">Jenis Gangguan:</label>
+                                <input type="text" id="jenis_gangguan" name="jenis_gangguan" class="form-control" value="<%= ticket.jenis_gangguan %>">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="jenis_perbaikan">Jenis Perbaikan:</label>
+                                <input type="text" id="jenis_perbaikan" name="jenis_perbaikan" class="form-control" value="<%= ticket.jenis_perbaikan %>">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="lokasi_odp">Lokasi ODP:</label>
+                                <input type="text" id="lokasi_odp" name="lokasi_odp" class="form-control" value="<%= ticket.lokasi_odp %>">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="lokasi_closure">Lokasi Closure:</label>
+                                <input type="text" id="lokasi_closure" name="lokasi_closure" class="form-control" value="<%= ticket.lokasi_closure %>">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="jarak_kabel">Jarak Kabel:</label>
+                                <input type="text" id="jarak_kabel" name="jarak_kabel" class="form-control" value="<%= ticket.jarak_kabel %>">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="redaman_terakhir">Redaman Terakhir:</label>
+                                <input type="text" id="redaman_terakhir" name="redaman_terakhir" class="form-control" value="<%= ticket.redaman_terakhir %>">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="nama_wifi">Nama WiFi:</label>
+                                <input type="text" id="nama_wifi" name="nama_wifi" class="form-control" value="<%= ticket.nama_wifi %>">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="password_wifi">Password WiFi:</label>
+                                <input type="text" id="password_wifi" name="password_wifi" class="form-control" value="<%= ticket.password_wifi %>">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="keterangan">Keterangan:</label>
+                                <textarea id="keterangan" name="keterangan" class="form-control"><%= ticket.keterangan %></textarea>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="tanggal_perbaikan">Tanggal Perbaikan:</label>
+                                <input type="datetime-local" id="tanggal_perbaikan" name="tanggal_perbaikan" class="form-control" 
+                                       value="<%= ticket.tanggal_perbaikan ? new Date(ticket.tanggal_perbaikan).toISOString().slice(0, 19) : '' %>">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label for="teknisi">Teknisi:</label>
+                                <input type="text" id="teknisi" name="teknisi" class="form-control" value="<%= ticket.teknisi %>">
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label for="status">Status:</label>
+                                <select id="status" name="status" class="form-control" required>
+                                    <option value="Terbuka" <%= ticket.status === 'Terbuka' ? 'selected' : '' %>>Terbuka</option>
+                                    <option value="Selesai" <%= ticket.status === 'Selesai' ? 'selected' : '' %>>Selesai</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Tombol di bawah -->
+                        <div>
+                            <!-- <div class="text-center mt-4"> -->
+                                <button type="submit" class="btn btn-info btn-save">Perbarui Tiket</button>
+                                <button type="button" class="btn btn-secondary btn-back" onclick="window.location.href='/list'">Batal</button>
+                            </div>
+                        <!-- <button type="submit" class="btn btn-success">Perbarui Tiket</button> -->
+                        </form>
+                    </div>
+                    <!-- <a href="/list" class="btn btn-primary">Kembali ke Daftar Tiket</a> -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <%- include('partials/footer.ejs') %>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/admin-lte/3.1.0/js/adminlte.min.js"></script>
+<script>
+// Fungsi untuk memformat tanggal ke format YYYY-MM-DD
+function formatDateForInput(dateString) {
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            throw new Error("Invalid date");
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`; // Format YYYY-MM-DD
+    } catch (error) {
+        console.error("Error formatting date:", error);
+        return ''; // Kembalikan string kosong jika terjadi kesalahan
+    }
+}
+
+// Fungsi untuk memformat tanggal dan waktu
+function formatDateTime(dateString) {
+    const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
+    const optionsTime = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    const date = new Date(dateString);
+    const formattedDate = date.toLocaleDateString('id-ID', optionsDate); // Format tanggal dalam bahasa Indonesia
+    const formattedTime = date.toLocaleTimeString('id-ID', optionsTime); // Format waktu dalam bahasa Indonesia
+    return `${formattedDate} ${formattedTime}`; // Gabungkan tanggal dan waktu
+}
+
+console.log("Tanggal Laporan:", ticket.tanggal_laporan);
+</script>
+</body>
+</html>

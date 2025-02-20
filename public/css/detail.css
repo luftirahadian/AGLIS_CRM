@@ -1,0 +1,22 @@
+/* public/css/detail.css */
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+.card {
+    margin-top: 20px;
+}
+
+.card-header {
+    background-color: #007bff;
+    color: white;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    color: black;
+}
+
+.btn {
+    margin-top: 10px;
+}

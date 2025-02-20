@@ -1,0 +1,12 @@
+.chart-container {
+    position: relative;
+    height: 400px; /* Tinggi grafik */
+    width: 100%; /* Lebar grafik */
+    padding: 20px; /* Padding untuk grafik */
+    background-color: #f8f9fa; /* Warna latar belakang yang lebih terang */
+    border-radius: 5px; /* Sudut yang membulat */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Bayangan untuk efek kedalaman */
+    display: flex; /* Menggunakan flexbox untuk memusatkan konten */
+    justify-content: center; /* Memusatkan secara horizontal */
+    align-items: center; /* Memusatkan secara vertikal */
+}
