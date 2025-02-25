@@ -6,8 +6,9 @@
     <title>Pengelolaan Pengguna - AGLIS Ticketing System</title>
     <link rel="stylesheet" href="/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
-<body class="control-sidebar-slide-open layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
+<body class="control-sidebar-slide-open sidebar-mini layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
 <div class="wrapper">
     <%- include('partials/header.ejs') %>
     <%- include('partials/sidebar.ejs') %>
@@ -27,7 +28,7 @@
                         <table id="userTable" class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>No.</th>
                                     <th>Nama</th>
                                     <th>Email</th>
                                     <th>Password</th>
@@ -36,9 +37,9 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <% users.forEach(user => { %>
+                                <% users.forEach((user, index) => { %>
                                     <tr>
-                                        <td><%= user.id %></td>
+                                        <td><%= index + 1 %></td>
                                         <td><%= user.nama %></td>
                                         <td><%= user.email %></td>
                                         <td>******</td>
@@ -91,6 +92,10 @@
                         <input type="password" class="form-control" id="userPassword" name="password" required placeholder="Masukkan password">
                     </div>
                     <div class="form-group">
+                        <label for="userPasswordConfirm">Verifikasi Password</label>
+                        <input type="password" class="form-control" id="userPasswordConfirm" name="passwordConfirm" required placeholder="Verifikasi password">
+                    </div>
+                    <div class="form-group">
                         <label for="userRole">Role</label>
                         <select class="form-control" id="userRole" name="role" required>
                             <option value="admin">Admin</option>
@@ -119,31 +124,35 @@
             </div>
             <div class="modal-body">
                 <form id="editUserForm">
-                    <input type="hidden" id="editUserId" name="id">
+                    <input type="hidden" id="editUserId" name="userId">
                     <div class="form-group">
                         <label for="editUserName">Nama</label>
-                        <input type="text" class="form-control" id="editUserName" name="name" required readonly>
+                        <input type="text" class="form-control" id="editUserName" name="userName" readonly>
                     </div>
                     <div class="form-group">
                         <label for="editUserEmail">Email</label>
-                        <input type="email" class="form-control" id="editUserEmail" name="email" required readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="editUserPassword">Password</label>
-                        <input type="password" class="form-control" id="editUserPassword" name="password" placeholder="Masukkan password baru jika ingin mengubahnya">
+                        <input type="email" class="form-control" id="editUserEmail" name="userEmail" readonly>
                     </div>
                     <div class="form-group">
                         <label for="editUserRole">Role</label>
-                        <select class="form-control" id="editUserRole" name="role" required>
+                        <select class="form-control" id="editUserRole" name="userRole" required>
                             <option value="admin">Admin</option>
                             <option value="user">User</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserPassword">Password Baru (kosongkan jika tidak ingin mengubah)</label>
+                        <input type="password" class="form-control" id="editUserPassword" name="userPassword">
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserPasswordConfirm">Konfirmasi Password</label>
+                        <input type="password" class="form-control" id="editUserPasswordConfirm" name="userPasswordConfirm">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" id="updateUser">Update Pengguna</button>
+                <button type="button" class="btn btn-primary" id="saveChangesButton">Simpan Perubahan</button>
             </div>
         </div>
     </div>
@@ -152,47 +161,53 @@
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script src="/js/adminlte.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
     $(document).ready(function() {
-        // Logika untuk menambah pengguna
         $('#saveUser').on('click', function() {
+            const password = $('#userPassword').val();
+            const passwordConfirm = $('#userPasswordConfirm').val();
+
+            if (password !== passwordConfirm) {
+                alert('Password dan verifikasi password tidak cocok!');
+                return;
+            }
+
             const formData = $('#addUserForm').serialize();
             $.post('/users/add', formData, function(response) {
                 toastr.success('Pengguna berhasil ditambahkan!');
-                location.reload(); // Reload halaman setelah menambah pengguna
+                location.reload();
+            }).fail(function() {
+                toastr.error('Terjadi kesalahan saat menambah pengguna.');
             });
         });
 
-        // Logika untuk mengedit pengguna
         $('.edit-user').on('click', function() {
             const userId = $(this).data('id');
             const userName = $(this).data('nama');
             const userEmail = $(this).data('email');
             const userRole = $(this).data('role');
 
-            console.log('Editing user:', userId, userName, userEmail, userRole); // Log data pengguna
+            console.log('Editing user:', userId, userName, userEmail, userRole);
 
-            // Isi form edit dengan data pengguna
             $('#editUserId').val(userId);
             $('#editUserName').val(userName);
             $('#editUserEmail').val(userEmail);
             $('#editUserRole').val(userRole);
         });
 
-        // Logika untuk memperbarui pengguna
-        $('#updateUser').on('click', function() {
+        $('#saveChangesButton').on('click', function() {
             const formData = $('#editUserForm').serialize();
             $.post('/users/update', formData, function(response) {
-                location.reload(); // Reload halaman setelah memperbarui pengguna
+                location.reload();
             });
         });
 
-        // Logika untuk menghapus pengguna
         $('.delete-user').on('click', function() {
             const userId = $(this).data('id');
             if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
                 $.post('/users/delete', { id: userId }, function(response) {
-                    location.reload(); // Reload halaman setelah menghapus pengguna
+                    location.reload();
                 });
             }
         });

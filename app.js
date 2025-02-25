@@ -59,19 +59,15 @@ function checkRole(role) {
     };
 }
 
-// Tambahkan fungsi ini di atas route Anda
-function formatDateTime(dateString) {
-    const optionsDate = { year: 'numeric', month: 'long', day: 'numeric' };
-    const optionsTime = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-    const date = new Date(dateString);
-    const formattedDate = date.toLocaleDateString('id-ID', optionsDate);
-    const formattedTime = date.toLocaleTimeString('id-ID', optionsTime);
-    return `${formattedDate} ${formattedTime}`;
+// Fungsi untuk memformat tanggal
+function formatDateTime(date) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(date).toLocaleDateString('id-ID', options);
 }
 
 // Route untuk halaman utama
 app.get('/', isAuthenticated, (req, res) => {
-    // Ambil data dari database atau hitung total tiket
+    // Ambil data yang diperlukan untuk ditampilkan di dashboard
     const queryTotalTickets = 'SELECT COUNT(*) AS total FROM tickets';
     const queryOpenTickets = 'SELECT COUNT(*) AS total FROM tickets WHERE status = "Terbuka"';
     const queryClosedTickets = 'SELECT COUNT(*) AS total FROM tickets WHERE status = "Selesai"';
@@ -94,12 +90,14 @@ app.get('/', isAuthenticated, (req, res) => {
                     return res.status(500).send('Error fetching closed tickets');
                 }
 
-                // Kirim data ke tampilan
+                // Kirim data ke template
                 res.render('index', {
                     totalTickets: totalResult[0].total,
                     totalOpenTickets: openResult[0].total,
                     totalClosedTickets: closedResult[0].total,
-                    userRole: req.session.userRole
+                    userRole: req.session.userRole,
+                    userName: req.session.userName,
+                    loginSuccess: req.query.login === 'success' // Kirim status login
                 });
             });
         });
@@ -108,14 +106,18 @@ app.get('/', isAuthenticated, (req, res) => {
 
 // Route untuk menampilkan daftar tiket
 app.get('/list', isAuthenticated, (req, res) => {
-    const query = 'SELECT *, createdAt FROM tickets'; // Mengambil semua tiket termasuk createdAt
-    db.query(query, (err, results) => {
+    const sql = 'SELECT * FROM tickets';
+    db.query(sql, (err, results) => {
         if (err) {
             console.error('Error fetching tickets:', err);
             return res.status(500).send('Error fetching tickets');
         }
-        // Kirim fungsi formatDateTime ke tampilan
-        res.render('list', { tickets: results, formatDateTime, userRole: req.session.userRole }); // Mengirim data tiket dan fungsi ke tampilan
+        res.render('list', {
+            tickets: results,
+            userRole: req.session.userRole,
+            userName: req.session.userName,
+            formatDateTime
+        });
     });
 });
 
@@ -143,7 +145,8 @@ app.get('/statistic', isAuthenticated, checkRole('admin'), (req, res) => {
             totalTickets,
             totalOpenTickets,
             totalClosedTickets,
-            userRole: req.session.userRole
+            userRole: req.session.userRole,
+            userName: req.session.userName
         });
     });
 });
@@ -175,7 +178,13 @@ app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
             return res.status(500).send('Error fetching last ticket number');
         }
         const createdAt = new Date(); // Atau ambil dari database jika perlu
-        res.render('create', { newTicketNumber, createdAt, userRole: req.session.userRole, formatDateTime });
+        res.render('create', {
+            newTicketNumber,
+            createdAt,
+            userRole: req.session.userRole,
+            userName: req.session.userName,
+            formatDateTime
+        });
     });
 });
 
@@ -235,7 +244,7 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
         if (results.length > 0) {
             const ticket = results[0];
             console.log('Ticket data:', ticket); // Tambahkan log ini untuk memeriksa data tiket
-            res.render('edit', { ticket, userRole: req.session.userRole, formatDateTime }); // Kirim fungsi ke tampilan
+            res.render('edit', { ticket, userRole: req.session.userRole, userName: req.session.userName, formatDateTime }); // Kirim fungsi ke tampilan
         } else {
             res.status(404).send('Ticket not found'); // Jika tiket tidak ditemukan
         }
@@ -289,48 +298,68 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
 
-    db.query('SELECT * FROM users WHERE email = ?', [email], (err, results) => {
+    const sql = 'SELECT * FROM users WHERE email = ?';
+    db.query(sql, [email], (err, results) => {
         if (err) {
             console.error('Error fetching user:', err);
-            return res.render('login', { error: 'Terjadi kesalahan server. Silakan coba lagi.' });
+            return res.status(500).send('Error fetching user');
+        }
+        if (results.length === 0) {
+            return res.render('login', { error: 'Email atau password salah.' }); // Render dengan pesan kesalahan
         }
 
-        if (results.length > 0) {
-            const user = results[0];
-            if (bcrypt.compareSync(password, user.password)) {
-                // Login berhasil
-                req.session.userId = user.id;
-                req.session.userRole = user.role;
-                return res.redirect('/');
-            } else {
-                // Password salah
-                return res.render('login', { error: 'Email atau password salah.' });
-            }
+        const user = results[0];
+        // Bandingkan password yang dimasukkan dengan password yang terenkripsi
+        if (bcrypt.compareSync(password, user.password)) {
+            req.session.userId = user.id; // Simpan ID pengguna di session
+            req.session.userRole = user.role; // Simpan role pengguna di session
+            req.session.userName = user.nama; // Simpan nama pengguna di session
+            return res.redirect('/?login=success'); // Redirect dengan query string
         } else {
-            // Pengguna tidak ditemukan
-            return res.render('login', { error: 'Email atau password salah.' });
+            return res.render('login', { error: 'Email atau password salah.' }); // Render dengan pesan kesalahan
         }
     });
 });
 
 // Route untuk halaman pengelolaan pengguna
-app.get('/users', isAuthenticated, checkRole('admin'), (req, res) => {
-    db.query('SELECT * FROM users', (err, users) => {
-        if (err) return res.status(500).send('Error fetching users');
-        res.render('user-management', { users, userRole: req.session.userRole });
+app.get('/users', isAuthenticated, (req, res) => {
+    const sql = 'SELECT * FROM users';
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            return res.status(500).send('Error fetching users');
+        }
+        res.render('user-management', {
+            users: results,
+            userRole: req.session.userRole,
+            userName: req.session.userName // Kirim nama pengguna
+        });
     });
 });
 
 // Route untuk menambah pengguna
-app.post('/users/add', (req, res) => {
-    const { name, email, password, role } = req.body;
-    const hashedPassword = bcrypt.hashSync(password, 10);
+app.post('/users/add', isAuthenticated, (req, res) => {
+    console.log('Data yang diterima:', req.body); // Log data yang diterima
+    const { nama, email, password, role } = req.body;
 
-    db.query('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', 
-        [name, email, hashedPassword, role], (err) => {
-            if (err) return res.status(500).send('Error adding user');
-            res.send({ success: true });
-        });
+    // Validasi di sini jika diperlukan
+    if (!nama || !email || !password || !role) {
+        return res.status(400).send('Semua field harus diisi.');
+    }
+
+    // Enkripsi password
+    const hashedPassword = bcrypt.hashSync(password, 10); // Menggunakan bcrypt untuk mengenkripsi password
+
+    const sql = 'INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)';
+    const values = [nama, email, hashedPassword, role];
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            console.error('Error adding user:', err);
+            return res.status(500).send('Error adding user');
+        }
+        res.send({ success: true }); // Kirim respons sukses
+    });
 });
 
 // Route untuk menghapus pengguna
@@ -375,24 +404,58 @@ app.post('/tickets/update', isAuthenticated, (req, res) => {
     });
 });
 
-// Route untuk memperbarui pengguna
+// Route untuk mengupdate pengguna
 app.post('/users/update', isAuthenticated, (req, res) => {
-    const { id, name, email, role, password } = req.body;
-    let query = 'UPDATE users SET name = ?, email = ?, role = ?';
-    const values = [name, email, role];
+    console.log('Data yang diterima:', req.body); // Tambahkan log ini
+    const { userId, userRole, userPassword, userPasswordConfirm } = req.body;
 
-    if (password) {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        query += ', password = ?';
+    // Validasi password
+    if (userPassword && userPassword !== userPasswordConfirm) {
+        return res.status(400).send('Password dan konfirmasi password tidak cocok.');
+    }
+
+    // Logika untuk memperbarui pengguna di database
+    let sql = 'UPDATE users SET role = ?' + (userPassword ? ', password = ?' : '') + ' WHERE id = ?';
+    const values = [userRole];
+
+    // Jika password baru diisi, tambahkan ke query
+    if (userPassword) {
+        const hashedPassword = bcrypt.hashSync(userPassword, 10); // Hash password
+        values.push(hashedPassword); // Tambahkan hashed password ke values
+    }
+    values.push(userId); // Tambahkan userId ke values
+
+    db.query(sql, values, (err, results) => {
+        if (err) {
+            console.error('Error updating user:', err);
+            return res.status(500).send('Error updating user');
+        }
+        res.send('User updated successfully');
+    });
+});
+
+// Route untuk mengedit pengguna
+app.post('/users/edit/:id', isAuthenticated, (req, res) => {
+    const userId = req.params.id;
+    const { userName, userEmail, userPassword } = req.body;
+
+    // Logika untuk memperbarui pengguna di database
+    let sql = 'UPDATE users SET name = ?, email = ? WHERE id = ?';
+    const values = [userName, userEmail, userId];
+
+    // Jika password baru diisi, tambahkan ke query
+    if (userPassword) {
+        sql = 'UPDATE users SET name = ?, email = ?, password = ? WHERE id = ?';
+        const hashedPassword = bcrypt.hashSync(userPassword, 10); // Hash password
         values.push(hashedPassword);
     }
 
-    query += ' WHERE id = ?';
-    values.push(id);
-
-    db.query(query, values, (err) => {
-        if (err) return res.status(500).send('Error updating user');
-        res.send({ success: true });
+    db.query(sql, values, (err, results) => {
+        if (err) {
+            console.error('Error updating user:', err);
+            return res.status(500).send('Error updating user');
+        }
+        res.send('User updated successfully');
     });
 });
 

@@ -11,9 +11,9 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
-<body class="control-sidebar-slide-open layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
+<body class="control-sidebar-slide-open sidebar-mini layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
 <div class="wrapper">
-    <%- include('partials/header.ejs') %>
+    <%- include('partials/header.ejs', { userName: userName }) %>
     <%- include('partials/sidebar.ejs') %>
 
     <!-- Content Wrapper -->
