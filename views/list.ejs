@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
 <body class="control-sidebar-slide-open layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
 <div class="wrapper">
@@ -19,13 +20,7 @@
     <div class="content-wrapper">
         <section class="content">
             <div class="container-fluid">
-                <% if (userRole === 'admin') { %>
-                    <h1>Selamat datang, Admin!</h1>
-                <% } else { %>
-                    <h1>Selamat datang, Pengguna!</h1>
-                <% } %>
-                <h1>List Tiket</h1>
-                
+                <h1>Daftar Tiket</h1>                
                 <!-- Tombol Buat Tiket Baru -->
                 <div class="mt-3">
                     <a href="/create" class="btn bg-gradient-warning btn-lg">Buat Tiket Baru</a>
@@ -48,9 +43,10 @@
                                 <th>CID</th>
                                 <th>Nama</th>
                                 <th>Alamat</th>
-                                <th>No HP</th>
+                                <!-- <th>No HP</th> -->
                                 <th>Komplain</th>
-                                <!-- <th>Tanggal Laporan</th> -->
+                                <!-- <th>Pelapor</th> -->
+                                <th>Tanggal Laporan</th>
                                 <th>Status</th>
                                 <th class="action-column">Action</th>
                             </tr>
@@ -63,9 +59,10 @@
                                     <td><%= ticket.cid %></td>
                                     <td><%= ticket.nama %></td>
                                     <td><%= ticket.alamat %></td>
-                                    <td><%= ticket.no_hp %></td>
+                                    <!-- <td><%= ticket.no_hp %></td> -->
                                     <td><%= ticket.komplain %></td>
-                                    <!-- <td><%= formatDateTime(ticket.tanggal_laporan) %></td> -->
+                                    <!-- <td><%= ticket.pelapor %></td> -->
+                                    <td><%= formatDateTime(ticket.createdAt) %></td>
                                     <td class="status-column">
                                         <% if (ticket.status === 'Terbuka') { %>
                                             <span class="btn btn-block bg-gradient-danger btn-sm disabled" title="Tiket ini masih terbuka">Terbuka <i class="fas fa-pause"></i></span>
@@ -127,6 +124,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
 <script>
     $(document).ready(function() {
@@ -176,7 +174,8 @@
                                 <p><strong>Alamat:</strong> ${ticket.alamat || ''}</p>
                                 <p><strong>No HP:</strong> ${ticket.no_hp || ''}</p>
                                 <p><strong>Komplain:</strong> ${ticket.komplain || ''}</p>
-                                <p><strong>Tanggal Laporan:</strong> ${formatDateTime(ticket.tanggal_laporan) || ''}</p>
+                                <p><strong>Pelapor:</strong> ${ticket.pelapor || ''}</p>
+                                <p><strong>Tanggal Laporan:</strong> ${formatDateTime(ticket.createdAt) || ''}</p>
                                 <p><strong>Status:</strong> <span class="status-label ${ticket.status === 'Terbuka' ? 'bg-danger' : 'bg-success'}">${ticket.status || ''}</span></p>
                             </div>
                         </div>
@@ -196,8 +195,8 @@
                                 <p><strong>Nama WiFi:</strong> ${ticket.nama_wifi || ''}</p>
                                 <p><strong>Password WiFi:</strong> ${ticket.password_wifi || ''}</p>
                                 <p><strong>Keterangan:</strong> ${ticket.keterangan || ''}</p>
-                                <p><strong>Tanggal Perbaikan:</strong> ${ticket.tanggal_perbaikan ? formatDateTime(ticket.tanggal_perbaikan) : ''}</p>
                                 <p><strong>Teknisi:</strong> ${ticket.teknisi || ''}</p>
+                                ${ticket.status === 'Selesai' ? `<p><strong>Tanggal Perbaikan:</strong> ${formatDateTime(ticket.updatedAt) || ''}</p>` : ''}
                             </div>
                         </div>
                     `;
@@ -238,6 +237,17 @@
         // Fungsi untuk mencetak
         $('#print').on('click', function() {
             window.print(); // Mencetak halaman
+        });
+
+        // Ketika modal ditampilkan
+        $('#ticketDetailModal').on('show.bs.modal', function () {
+            $(this).attr('aria-hidden', 'false'); // Set aria-hidden ke false
+            $(this).focus(); // Pindahkan fokus ke modal
+        });
+
+        // Ketika modal ditutup
+        $('#ticketDetailModal').on('hide.bs.modal', function () {
+            $(this).attr('aria-hidden', 'true'); // Set aria-hidden ke true
         });
     });
 </script>

@@ -46,7 +46,7 @@ function isAuthenticated(req, res, next) {
     if (req.session.userId) {
         return next(); // Jika pengguna sudah login, lanjutkan ke rute berikutnya
     }
-    res.redirect('/login'); // Jika tidak, arahkan ke halaman login
+    res.redirect('/login'); // Jika tidak, alihkan ke halaman login
 }
 
 // Middleware untuk memeriksa role
@@ -108,7 +108,7 @@ app.get('/', isAuthenticated, (req, res) => {
 
 // Route untuk menampilkan daftar tiket
 app.get('/list', isAuthenticated, (req, res) => {
-    const query = 'SELECT *, DATE_FORMAT(tanggal_laporan, "%Y-%m-%d %H:%i:%s") AS tanggal_laporan FROM tickets'; // Mengambil semua tiket
+    const query = 'SELECT *, createdAt FROM tickets'; // Mengambil semua tiket termasuk createdAt
     db.query(query, (err, results) => {
         if (err) {
             console.error('Error fetching tickets:', err);
@@ -162,6 +162,7 @@ function getNewTicketNumber(callback) {
             newTicketNumber = `TKT-${lastNumber.toString().padStart(5, '0')}`; // Format nomor tiket baru
         }
 
+        console.log('New Ticket Number:', newTicketNumber);
         callback(null, newTicketNumber);
     });
 }
@@ -173,7 +174,8 @@ app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
             console.error('Error fetching last ticket number:', err);
             return res.status(500).send('Error fetching last ticket number');
         }
-        res.render('create', { newTicketNumber, userRole: req.session.userRole }); // Kirim nomor tiket baru ke tampilan
+        const createdAt = new Date(); // Atau ambil dari database jika perlu
+        res.render('create', { newTicketNumber, createdAt, userRole: req.session.userRole, formatDateTime });
     });
 });
 
@@ -185,52 +187,36 @@ app.post('/ticket/create', isAuthenticated, (req, res) => {
             return res.status(500).send('Error fetching last ticket number');
         }
 
-        const newTicket = {
-            no_tiket: newTicketNumber,
-            cid: req.body.cid,
-            nama: req.body.nama,
-            alamat: req.body.alamat,
-            no_hp: req.body.no_hp,
-            komplain: req.body.komplain,
-            pelapor: req.body.pelapor,
-            tanggal_laporan: req.body.tanggal_laporan || new Date().toISOString().slice(0, 10),
-            jenis_gangguan: req.body.jenis_gangguan || null,
-            jenis_perbaikan: req.body.jenis_perbaikan || null,
-            lokasi_odp: req.body.lokasi_odp || null,
-            lokasi_closure: req.body.lokasi_closure || null,
-            jarak_kabel: req.body.jarak_kabel || null,
-            redaman_terakhir: req.body.redaman_terakhir || null,
-            nama_wifi: req.body.nama_wifi || null,
-            password_wifi: req.body.password_wifi || null,
-            keterangan: req.body.keterangan || null,
-            tanggal_perbaikan: req.body.status === 'Terbuka' ? null : req.body.tanggal_perbaikan, // Kosongkan jika status 'Terbuka'
-            teknisi: req.body.teknisi || null,
-            status: 'Terbuka', // Set status default ke Terbuka
-        };
+        const { cid, nama, alamat, no_hp, komplain, pelapor } = req.body;
 
-        const query = 'INSERT INTO tickets SET ?';
-        db.query(query, newTicket, (err, result) => {
+        // Pastikan status selalu diatur ke 'Terbuka'
+        const status = 'Terbuka';
+
+        const sql = 'INSERT INTO tickets (no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+        const values = [newTicketNumber, cid, nama, alamat, no_hp, komplain, pelapor, status];
+
+        db.query(sql, values, (err, result) => {
             if (err) {
                 console.error('Error creating ticket:', err);
                 return res.status(500).send('Error creating ticket');
             }
-            res.redirect('/list'); // Redirect ke halaman daftar tiket setelah berhasil
+            res.send({ success: true }); // Kirim respons sukses
         });
     });
 });
 
 // Route untuk menampilkan detail tiket
 app.get('/ticket/:id', isAuthenticated, (req, res) => {
-    console.log('Fetching ticket with ID:', req.params.id); // Tambahkan log ini
     const ticketId = parseInt(req.params.id); // Ambil ID dari parameter URL
     const query = 'SELECT * FROM tickets WHERE id = ?'; // Query untuk mengambil tiket berdasarkan ID
     db.query(query, [ticketId], (err, results) => {
         if (err) {
-            console.error('Error fetching ticket details:', err);
-            return res.status(500).send('Error fetching ticket details');
+            console.error('Error fetching ticket:', err);
+            return res.status(500).send('Error fetching ticket');
         }
-        if (results.length > 0) {
-            res.json(results[0]); // Mengirim detail tiket sebagai respons
+        const ticket = results[0];
+        if (ticket) {
+            res.json(ticket); // Mengirim detail tiket sebagai respons
         } else {
             res.status(404).send('Ticket not found'); // Jika tiket tidak ditemukan
         }
@@ -240,7 +226,6 @@ app.get('/ticket/:id', isAuthenticated, (req, res) => {
 // Route untuk menampilkan halaman edit tiket
 app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
     const ticketId = req.params.id;
-    // Ambil tiket dari database
     const query = 'SELECT * FROM tickets WHERE id = ?';
     db.query(query, [ticketId], (err, results) => {
         if (err) {
@@ -248,7 +233,9 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
             return res.status(500).send('Error fetching ticket details');
         }
         if (results.length > 0) {
-            res.render('edit', { ticket: results[0] }); // Render halaman edit dengan data tiket
+            const ticket = results[0];
+            console.log('Ticket data:', ticket); // Tambahkan log ini untuk memeriksa data tiket
+            res.render('edit', { ticket, userRole: req.session.userRole, formatDateTime }); // Kirim fungsi ke tampilan
         } else {
             res.status(404).send('Ticket not found'); // Jika tiket tidak ditemukan
         }
@@ -258,40 +245,44 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
 // Route untuk mengupdate tiket
 app.post('/ticket/update/:id', isAuthenticated, (req, res) => {
     const ticketId = req.params.id;
-    const { no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, tanggal_laporan, tanggal_perbaikan, status } = req.body;
+    const { no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, status, jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi } = req.body;
 
-    // Mengonversi tanggal dan waktu ke format yang sesuai
-    const formattedTanggalLaporan = new Date(tanggal_laporan).toISOString().slice(0, 19).replace('T', ' ');
-
-    // Kosongkan tanggal_perbaikan jika status adalah 'Terbuka'
-    const formattedTanggalPerbaikan = status === 'Terbuka' ? null : new Date(tanggal_perbaikan).toISOString().slice(0, 19).replace('T', ' ');
+    // Validasi di sisi server
+    if (!status || !jenis_gangguan || !jenis_perbaikan || !lokasi_odp || !lokasi_closure || !jarak_kabel || !redaman_terakhir || !nama_wifi || !password_wifi || !keterangan || !teknisi) {
+        return res.status(400).send('Semua field yang diperlukan harus diisi.');
+    }
 
     // SQL untuk memperbarui tiket
     const sql = `UPDATE tickets SET 
-        no_tiket = ?, 
-        cid = ?, 
-        nama = ?, 
-        alamat = ?, 
-        no_hp = ?, 
-        komplain = ?, 
-        pelapor = ?, 
-        tanggal_laporan = ?, 
-        tanggal_perbaikan = ? 
+        jenis_gangguan = ?,
+        jenis_perbaikan = ?,
+        lokasi_odp = ?,
+        lokasi_closure = ?,
+        jarak_kabel = ?,
+        redaman_terakhir = ?,
+        nama_wifi = ?,
+        password_wifi = ?,
+        keterangan = ?,
+        teknisi = ?,
+        status = ? 
         WHERE id = ?`;
 
-    const values = [no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, formattedTanggalLaporan, formattedTanggalPerbaikan, ticketId];
+    const values = [jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi, status, ticketId];
+
+    console.log('Data yang diterima untuk pembaruan:', req.body);
 
     db.query(sql, values, (err, result) => {
         if (err) {
-            return res.status(500).send(err);
+            console.error('Error updating ticket:', err);
+            return res.status(500).send('Error updating ticket');
         }
-        res.redirect('/list');
+        res.redirect('/list'); // Redirect ke halaman daftar tiket setelah berhasil
     });
 });
 
 // Route untuk halaman login
 app.get('/login', (req, res) => {
-    res.render('login');
+    res.render('login', { error: null });
 });
 
 // Route untuk menangani login
@@ -299,19 +290,25 @@ app.post('/login', (req, res) => {
     const { email, password } = req.body;
 
     db.query('SELECT * FROM users WHERE email = ?', [email], (err, results) => {
-        if (err) return res.status(500).send('Error fetching user');
+        if (err) {
+            console.error('Error fetching user:', err);
+            return res.render('login', { error: 'Terjadi kesalahan server. Silakan coba lagi.' });
+        }
 
         if (results.length > 0) {
             const user = results[0];
             if (bcrypt.compareSync(password, user.password)) {
+                // Login berhasil
                 req.session.userId = user.id;
                 req.session.userRole = user.role;
                 return res.redirect('/');
             } else {
-                return res.status(401).send('Password salah');
+                // Password salah
+                return res.render('login', { error: 'Email atau password salah.' });
             }
         } else {
-            return res.status(404).send('Pengguna tidak ditemukan');
+            // Pengguna tidak ditemukan
+            return res.render('login', { error: 'Email atau password salah.' });
         }
     });
 });

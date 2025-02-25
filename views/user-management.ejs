@@ -39,12 +39,18 @@
                                 <% users.forEach(user => { %>
                                     <tr>
                                         <td><%= user.id %></td>
-                                        <td><%= user.name %></td>
+                                        <td><%= user.nama %></td>
                                         <td><%= user.email %></td>
                                         <td>******</td>
                                         <td><%= user.role %></td>
                                         <td>
-                                            <button class="btn btn-info btn-sm edit-user" data-id="<%= user.id %>" data-name="<%= user.name %>" data-email="<%= user.email %>" data-role="<%= user.role %>" data-toggle="modal" data-target="#editUserModal">Edit</button>
+                                            <button class="btn btn-info btn-sm edit-user" 
+                                                    data-id="<%= user.id %>" 
+                                                    data-nama="<%= user.nama %>" 
+                                                    data-email="<%= user.email %>" 
+                                                    data-role="<%= user.role %>" 
+                                                    data-toggle="modal" 
+                                                    data-target="#editUserModal">Edit</button>
                                             <button class="btn btn-danger btn-sm delete-user" data-id="<%= user.id %>">Hapus</button>
                                         </td>
                                     </tr>
@@ -74,7 +80,7 @@
                 <form id="addUserForm">
                     <div class="form-group">
                         <label for="userName">Nama</label>
-                        <input type="text" class="form-control" id="userName" name="name" required>
+                        <input type="text" class="form-control" id="userName" name="nama" required>
                     </div>
                     <div class="form-group">
                         <label for="userEmail">Email</label>
@@ -152,6 +158,7 @@
         $('#saveUser').on('click', function() {
             const formData = $('#addUserForm').serialize();
             $.post('/users/add', formData, function(response) {
+                toastr.success('Pengguna berhasil ditambahkan!');
                 location.reload(); // Reload halaman setelah menambah pengguna
             });
         });
@@ -159,9 +166,11 @@
         // Logika untuk mengedit pengguna
         $('.edit-user').on('click', function() {
             const userId = $(this).data('id');
-            const userName = $(this).data('name');
+            const userName = $(this).data('nama');
             const userEmail = $(this).data('email');
             const userRole = $(this).data('role');
+
+            console.log('Editing user:', userId, userName, userEmail, userRole); // Log data pengguna
 
             // Isi form edit dengan data pengguna
             $('#editUserId').val(userId);
