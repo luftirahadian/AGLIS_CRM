@@ -6,6 +6,7 @@ const path = require('path');
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const { sendMessage } = require('./services/wablas');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ const db = mysql.createConnection({
     database: 'crm_ticketing'
 });
 
+// Menghubungkan ke database
 db.connect(err => {
     if (err) {
         console.error('Error connecting to the database:', err);
@@ -65,9 +67,8 @@ function formatDateTime(date) {
     return new Date(date).toLocaleDateString('id-ID', options);
 }
 
-// Route untuk halaman utama
+// Rute untuk halaman utama
 app.get('/', isAuthenticated, (req, res) => {
-    // Ambil data yang diperlukan untuk ditampilkan di dashboard
     const queryTotalTickets = 'SELECT COUNT(*) AS total FROM tickets';
     const queryOpenTickets = 'SELECT COUNT(*) AS total FROM tickets WHERE status = "Terbuka"';
     const queryClosedTickets = 'SELECT COUNT(*) AS total FROM tickets WHERE status = "Selesai"';
@@ -104,7 +105,7 @@ app.get('/', isAuthenticated, (req, res) => {
     });
 });
 
-// Route untuk menampilkan daftar tiket
+// Rute untuk menampilkan daftar tiket
 app.get('/list', isAuthenticated, (req, res) => {
     const sql = 'SELECT * FROM tickets';
     db.query(sql, (err, results) => {
@@ -121,36 +122,46 @@ app.get('/list', isAuthenticated, (req, res) => {
     });
 });
 
-// Route untuk mendapatkan statistik tiket
-app.get('/statistic', isAuthenticated, checkRole('admin'), (req, res) => {
-    const sql = "SELECT status, COUNT(*) as count FROM tickets GROUP BY status";
+// Rute untuk mendapatkan statistik tiket
+app.get('/statistic', isAuthenticated, (req, res) => {
+    const sql = 'SELECT DATE(createdAt) AS tanggal, COUNT(*) AS jumlah FROM tickets GROUP BY DATE(createdAt) ORDER BY tanggal';
+    
     db.query(sql, (err, results) => {
         if (err) {
-            console.error("Error fetching statistics: ", err);
-            return res.status(500).send("Error fetching statistics");
+            console.error('Error fetching statistics:', err);
+            return res.status(500).send('Error fetching statistics');
         }
 
-        // Hitung total tiket
-        const totalTickets = results.reduce((acc, stat) => acc + stat.count, 0);
-        const totalOpenTickets = results.find(stat => stat.status === 'Terbuka')?.count || 0;
-        const totalClosedTickets = results.find(stat => stat.status === 'Selesai')?.count || 0;
+        // Siapkan data untuk grafik
+        const labels = results.map(row => row.tanggal); // Ambil tanggal
+        const dataCounts = results.map(row => row.jumlah); // Ambil jumlah tiket
 
-        console.log("Total Tiket:", totalTickets);
-        console.log("Tiket Terbuka:", totalOpenTickets);
-        console.log("Tiket Selesai:", totalClosedTickets);
+        // Jika tidak ada data, kirim array kosong
+        if (results.length === 0) {
+            return res.render('statistic', {
+                labels: JSON.stringify([]),
+                dataCounts: JSON.stringify([]),
+                totalTickets: 0,
+                totalOpenTickets: 0,
+                totalClosedTickets: 0,
+                userRole: req.session.userRole,
+                userName: req.session.userName
+            });
+        }
 
-        // Kirim data ke tampilan
         res.render('statistic', {
-            statistics: results,
-            totalTickets,
-            totalOpenTickets,
-            totalClosedTickets,
+            labels: JSON.stringify(labels), // Kirim tanggal
+            dataCounts: JSON.stringify(dataCounts), // Kirim jumlah tiket
+            totalTickets: results.reduce((sum, row) => sum + row.jumlah, 0), // Total tiket
+            totalOpenTickets: 0, // Ganti dengan logika yang sesuai jika diperlukan
+            totalClosedTickets: 0, // Ganti dengan logika yang sesuai jika diperlukan
             userRole: req.session.userRole,
             userName: req.session.userName
         });
     });
 });
 
+// Fungsi untuk mendapatkan nomor tiket baru
 function getNewTicketNumber(callback) {
     const queryLastTicket = 'SELECT no_tiket FROM tickets ORDER BY id DESC LIMIT 1';
     db.query(queryLastTicket, (err, results) => {
@@ -165,12 +176,12 @@ function getNewTicketNumber(callback) {
             newTicketNumber = `TKT-${lastNumber.toString().padStart(5, '0')}`; // Format nomor tiket baru
         }
 
-        console.log('New Ticket Number:', newTicketNumber);
+        // console.log('New Ticket Number:', newTicketNumber);
         callback(null, newTicketNumber);
     });
 }
 
-// Route untuk membuat tiket
+// Rute untuk membuat tiket
 app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
     getNewTicketNumber((err, newTicketNumber) => {
         if (err) {
@@ -188,9 +199,9 @@ app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
     });
 });
 
-// Route untuk membuat tiket
-app.post('/ticket/create', isAuthenticated, (req, res) => {
-    getNewTicketNumber((err, newTicketNumber) => {
+// Rute untuk membuat tiket
+app.post('/ticket/create', isAuthenticated, async (req, res) => {
+    getNewTicketNumber(async (err, newTicketNumber) => {
         if (err) {
             console.error('Error fetching last ticket number:', err);
             return res.status(500).send('Error fetching last ticket number');
@@ -204,17 +215,61 @@ app.post('/ticket/create', isAuthenticated, (req, res) => {
         const sql = 'INSERT INTO tickets (no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
         const values = [newTicketNumber, cid, nama, alamat, no_hp, komplain, pelapor, status];
 
-        db.query(sql, values, (err, result) => {
+        db.query(sql, values, async (err, result) => {
             if (err) {
                 console.error('Error creating ticket:', err);
                 return res.status(500).send('Error creating ticket');
             }
+
+            // Mengubah format nomor WhatsApp
+            let nohp = no_hp.replace('+', ''); // Menghapus tanda '+' jika ada
+
+            if (nohp.startsWith('0')) {
+                nohp = '62' + nohp.substring(1); // Jika diawali dengan '0', ganti dengan '62'
+            } else if (nohp.startsWith('+0')) {
+                nohp = '62' + nohp.substring(2); // Jika diawali dengan '+0', ganti dengan '62'
+            } else if (nohp.startsWith('+62')) {
+                nohp = nohp.substring(1); // Jika diawali dengan '+62', hapus tanda '+' di depan
+            } else if (!nohp.startsWith('62')) {
+                nohp = '62' + nohp; // Jika tidak diawali dengan '0', '+0', dan '+62', tambahkan '62' di depan
+            }
+
+            // Mendapatkan waktu saat tiket dibuat
+            const createdAt = new Date().toLocaleString(); // Format waktu sesuai kebutuhan
+
+            // Kirim pesan WhatsApp setelah tiket berhasil dibuat
+            const message = `📢🔔 *Tiket aduan baru telah dibuat* 🔊
+            *Tanggal :* ${createdAt}
+            
+*No Tiket :* ${newTicketNumber}
+*CID :* ${cid}
+*Nama :* ${nama}
+*Alamat :* ${alamat}
+*No. WA :* https://wa.me/${nohp}
+*Komplain :* ${komplain}
+*Link Tiket :* http://localhost:3000/ticket/view/${result.insertId}
+
+Pelapor 📝 *${pelapor}*`;
+            
+            // Daftar penerima
+            const recipients = [
+                { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor individu
+                { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup 1
+                { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup 2
+            ];
+
+            try {
+                await sendMessage(recipients); // Kirim pesan ke semua penerima
+            } catch (error) {
+                console.error('Error sending WhatsApp message:', error);
+            }
+
             res.send({ success: true }); // Kirim respons sukses
         });
     });
 });
 
-// Route untuk menampilkan detail tiket
+// Rute untuk menampilkan detail tiket
 app.get('/ticket/:id', isAuthenticated, (req, res) => {
     const ticketId = parseInt(req.params.id); // Ambil ID dari parameter URL
     const query = 'SELECT * FROM tickets WHERE id = ?'; // Query untuk mengambil tiket berdasarkan ID
@@ -232,7 +287,7 @@ app.get('/ticket/:id', isAuthenticated, (req, res) => {
     });
 });
 
-// Route untuk menampilkan halaman edit tiket
+// Rute untuk menampilkan halaman edit tiket
 app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
     const ticketId = req.params.id;
     const query = 'SELECT * FROM tickets WHERE id = ?';
@@ -251,7 +306,7 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
     });
 });
 
-// Route untuk mengupdate tiket
+// Rute untuk mengupdate tiket
 app.post('/ticket/update/:id', isAuthenticated, (req, res) => {
     const ticketId = req.params.id;
     const { no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, status, jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi } = req.body;
@@ -456,6 +511,43 @@ app.post('/users/edit/:id', isAuthenticated, (req, res) => {
             return res.status(500).send('Error updating user');
         }
         res.send('User updated successfully');
+    });
+});
+
+// Uji pengiriman pesan ke nomor dan grup
+app.get('/test-send-message', async (req, res) => {
+    const message = 'Hello, this is a message to the group and individual!';
+
+    const recipients = [
+        { phone: '628197670700', message: message, isGroup: false }, // Nomor individu
+        { phone: '120363044550799792', message: message, isGroup: true }, // Grup 1
+        { phone: '120363277167789572', message: message, isGroup: true }  // Grup 2
+    ];
+
+    try {
+        await sendMessage(recipients); // Mengirim pesan ke semua penerima
+        res.send('Pesan berhasil dikirim ke nomor dan grup!');
+    } catch (error) {
+        res.status(500).send('Gagal mengirim pesan ke nomor dan grup.');
+    }
+});
+
+// Rute untuk menampilkan detail tiket (akses publik)
+app.get('/ticket/view/:id', (req, res) => {
+    const ticketId = req.params.id; // Ambil ID tiket dari parameter URL
+    const query = 'SELECT * FROM tickets WHERE id = ?'; // Query untuk mengambil tiket berdasarkan ID
+
+    db.query(query, [ticketId], (err, results) => {
+        if (err) {
+            console.error('Error fetching ticket:', err);
+            return res.status(500).send('Error fetching ticket');
+        }
+        if (results.length > 0) {
+            const ticket = results[0]; // Ambil tiket pertama dari hasil
+            res.render('view-ticket', { ticket, userRole: null, userName: null }); // Tambahkan userRole dan userName dengan nilai null
+        } else {
+            res.status(404).send('Ticket not found'); // Jika tiket tidak ditemukan
+        }
     });
 });
 
