@@ -297,7 +297,7 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
         }
         if (results.length > 0) {
             const ticket = results[0];
-            console.log('Ticket data:', ticket); // Log data tiket
+            // console.log('Ticket data:', ticket); // Log data tiket
             
             // Ambil no_hp dan simpan di req.body
             // req.body.no_hp = ticket.no_hp; 
@@ -318,7 +318,7 @@ app.post('/ticket/update/:id', isAuthenticated, async (req, res) => {
     const ticketId = req.params.id;
 
     // Log semua data yang diterima
-    console.log('Isi req.body sebelum validasi:', req.body);
+    // console.log('Isi req.body sebelum validasi:', req.body);
 
     // Ambil no_hp dari req.body
     // const { no_hp } = req.body;
@@ -497,7 +497,7 @@ app.get('/users', isAuthenticated, (req, res) => {
 
 // Route untuk menambah pengguna
 app.post('/users/add', isAuthenticated, (req, res) => {
-    console.log('Data yang diterima:', req.body); // Log data yang diterima
+    // console.log('Data yang diterima:', req.body); // Log data yang diterima
     const { nama, email, password, role } = req.body;
 
     // Validasi di sini jika diperlukan
@@ -543,7 +543,7 @@ app.get('/logout', (req, res) => {
 
 // Route untuk mengupdate pengguna
 app.post('/users/update', isAuthenticated, (req, res) => {
-    console.log('Data yang diterima:', req.body); // Tambahkan log ini
+    // console.log('Data yang diterima:', req.body); // Tambahkan log ini
     const { userId, userRole, userPassword, userPasswordConfirm } = req.body;
 
     // Validasi password
