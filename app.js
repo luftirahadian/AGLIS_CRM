@@ -67,6 +67,25 @@ function formatDateTime(date) {
     return new Date(date).toLocaleDateString('id-ID', options);
 }
 
+// Fungsi untuk mendapatkan nomor tiket baru
+function getNewTicketNumber(callback) {
+    const queryLastTicket = 'SELECT no_tiket FROM tickets ORDER BY id DESC LIMIT 1';
+    db.query(queryLastTicket, (err, results) => {
+        if (err) {
+            return callback(err);
+        }
+
+        let newTicketNumber = 'TKT-00001'; // Default jika tidak ada tiket
+        if (results.length > 0) {
+            const lastTicketNumber = results[0].no_tiket;
+            const lastNumber = parseInt(lastTicketNumber.split('-')[1]) + 1; // Ambil nomor terakhir dan tambahkan 1
+            newTicketNumber = `TKT-${lastNumber.toString().padStart(5, '0')}`; // Format nomor tiket baru
+        }
+
+        callback(null, newTicketNumber);
+    });
+}
+
 // Rute untuk halaman utama
 app.get('/', isAuthenticated, (req, res) => {
     const queryTotalTickets = 'SELECT COUNT(*) AS total FROM tickets';
@@ -161,26 +180,6 @@ app.get('/statistic', isAuthenticated, (req, res) => {
     });
 });
 
-// Fungsi untuk mendapatkan nomor tiket baru
-function getNewTicketNumber(callback) {
-    const queryLastTicket = 'SELECT no_tiket FROM tickets ORDER BY id DESC LIMIT 1';
-    db.query(queryLastTicket, (err, results) => {
-        if (err) {
-            return callback(err);
-        }
-
-        let newTicketNumber = 'TKT-00001'; // Default jika tidak ada tiket
-        if (results.length > 0) {
-            const lastTicketNumber = results[0].no_tiket;
-            const lastNumber = parseInt(lastTicketNumber.split('-')[1]) + 1; // Ambil nomor terakhir dan tambahkan 1
-            newTicketNumber = `TKT-${lastNumber.toString().padStart(5, '0')}`; // Format nomor tiket baru
-        }
-
-        // console.log('New Ticket Number:', newTicketNumber);
-        callback(null, newTicketNumber);
-    });
-}
-
 // Rute untuk membuat tiket
 app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
     getNewTicketNumber((err, newTicketNumber) => {
@@ -249,13 +248,13 @@ app.post('/ticket/create', isAuthenticated, async (req, res) => {
 *Komplain :* ${komplain}
 *Link Tiket :* http://localhost:3000/ticket/view/${result.insertId}
 
-Pelapor 📝 *${pelapor}*`;
+_Ttd Pelapor_ 📝 *${pelapor}*`;
             
             // Daftar penerima
             const recipients = [
-                { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor individu
-                { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup 1
-                { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup 2
+                { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
+                { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+                { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
             ];
 
             try {
@@ -298,7 +297,15 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
         }
         if (results.length > 0) {
             const ticket = results[0];
-            console.log('Ticket data:', ticket); // Tambahkan log ini untuk memeriksa data tiket
+            console.log('Ticket data:', ticket); // Log data tiket
+            
+            // Ambil no_hp dan simpan di req.body
+            // req.body.no_hp = ticket.no_hp; 
+            // console.log('No HP berhasil ditambahkan ke req.body:', req.body.no_hp); // Log no_hp
+
+            // Log ketika no_hp berhasil ditempelkan ke field halaman edit
+            // console.log('No HP berhasil ditempelkan ke field halaman edit:', ticket.no_hp); // Log no_hp yang ditempelkan
+
             res.render('edit', { ticket, userRole: req.session.userRole, userName: req.session.userName, formatDateTime }); // Kirim fungsi ke tampilan
         } else {
             res.status(404).send('Ticket not found'); // Jika tiket tidak ditemukan
@@ -307,17 +314,30 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
 });
 
 // Rute untuk mengupdate tiket
-app.post('/ticket/update/:id', isAuthenticated, (req, res) => {
+app.post('/ticket/update/:id', isAuthenticated, async (req, res) => {
     const ticketId = req.params.id;
-    const { no_tiket, cid, nama, alamat, no_hp, komplain, pelapor, status, jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi } = req.body;
+
+    // Log semua data yang diterima
+    console.log('Isi req.body sebelum validasi:', req.body);
+
+    // Ambil no_hp dari req.body
+    // const { no_hp } = req.body;
+    // console.log('No HP yang akan digunakan untuk pembaruan:', no_hp); // Log no_hp
+
+    // Ambil field lain dari req.body
+    const { no_tiket, cid, nama, no_hp, alamat, komplain, pelapor, status, jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi } = req.body;
+
+    // Debugging: Log nilai no_hp
+    // console.log('No HP:', no_hp); // Tambahkan log ini untuk memeriksa nilai no_hp
 
     // Validasi di sisi server
-    if (!status || !jenis_gangguan || !jenis_perbaikan || !lokasi_odp || !lokasi_closure || !jarak_kabel || !redaman_terakhir || !nama_wifi || !password_wifi || !keterangan || !teknisi) {
+    if (!status || !jenis_gangguan || !jenis_perbaikan || !redaman_terakhir || !keterangan || !teknisi ) {
+        console.log('Validasi gagal, field yang hilang:', { status, jenis_gangguan, jenis_perbaikan, redaman_terakhir, keterangan, teknisi });
         return res.status(400).send('Semua field yang diperlukan harus diisi.');
     }
 
     // SQL untuk memperbarui tiket
-    const sql = `UPDATE tickets SET 
+    const sql = `UPDATE tickets SET
         jenis_gangguan = ?,
         jenis_perbaikan = ?,
         lokasi_odp = ?,
@@ -333,14 +353,97 @@ app.post('/ticket/update/:id', isAuthenticated, (req, res) => {
 
     const values = [jenis_gangguan, jenis_perbaikan, lokasi_odp, lokasi_closure, jarak_kabel, redaman_terakhir, nama_wifi, password_wifi, keterangan, teknisi, status, ticketId];
 
-    console.log('Data yang diterima untuk pembaruan:', req.body);
+    // console.log('SQL yang akan dijalankan:', sql); // Log SQL
+    // console.log('Nilai yang akan digunakan untuk pembaruan:', values); // Log nilai yang akan digunakan
 
-    db.query(sql, values, (err, result) => {
+    db.query(sql, values, async (err, result) => {
         if (err) {
             console.error('Error updating ticket:', err);
             return res.status(500).send('Error updating ticket');
         }
-        res.redirect('/list'); // Redirect ke halaman daftar tiket setelah berhasil
+
+        // Mengubah format nomor WhatsApp
+        let nohp = no_hp.replace('+', ''); // Menghapus tanda '+' jika ada
+
+        if (nohp.startsWith('0')) {
+            nohp = '62' + nohp.substring(1); // Jika diawali dengan '0', ganti dengan '62'
+        } else if (nohp.startsWith('+0')) {
+            nohp = '62' + nohp.substring(2); // Jika diawali dengan '+0', ganti dengan '62'
+        } else if (nohp.startsWith('+62')) {
+            nohp = nohp.substring(1); // Jika diawali dengan '+62', hapus tanda '+' di depan
+        } else if (!nohp.startsWith('62')) {
+            nohp = '62' + nohp; // Jika tidak diawali dengan '0', '+0', dan '+62', tambahkan '62' di depan
+        }
+
+        // Mendapatkan waktu saat tiket diperbarui
+        const updatedAt = new Date().toLocaleString(); // Format waktu sesuai kebutuhan
+
+        // Kirim pesan WhatsApp setelah tiket berhasil diperbarui
+        const message = `✅ *Tiket aduan telah diperbarui* 🔔
+    *Tanggal :* ${updatedAt}
+
+*No Tiket:* ${no_tiket}
+*CID:* ${cid}
+*Nama:* ${nama}
+*Alamat:* ${alamat}
+*No. WA:* https://wa.me/${nohp}
+*Komplain:* ${komplain}
+*Pelapor:* ${pelapor}
+*Jenis Gangguan:* ${jenis_gangguan}
+*Jenis Perbaikan:* ${jenis_perbaikan}
+*Lokasi ODP:* ${lokasi_odp}
+*Lokasi Closure:* ${lokasi_closure}
+*Jarak Kabel:* ${jarak_kabel}
+*Redaman Terakhir:* ${redaman_terakhir}
+*Nama WiFi:* ${nama_wifi}
+*Password WiFi:* ${password_wifi}
+*Keterangan:* ${keterangan}
+*Status:* ${status}
+
+_Ttd Teknisi_ 📝 *${teknisi}*`;
+
+        // Pastikan no_hp didefinisikan sebelum digunakan
+        // if (!no_hp) {
+        //     console.error('No HP tidak didefinisikan');
+        //     return res.status(400).send('No HP tidak didefinisikan');
+        // }
+
+        // Daftar penerima
+        const recipients = [
+            { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
+            { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+            { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
+        ];
+
+        try {
+            await sendMessage(recipients); // Kirim pesan ke semua penerima
+            console.log('Pesan WhatsApp berhasil dikirim ke:', recipients); // Log sukses pengiriman pesan
+            res.redirect('/list'); // Redirect ke halaman daftar tiket setelah berhasil
+        } catch (error) {
+            console.error('Error sending WhatsApp message:', error);
+            res.status(500).send('Gagal mengirim pesan WhatsApp.');
+        }
+    });
+});
+
+// Rute untuk memperbarui status tiket
+app.post('/tickets/update', isAuthenticated, (req, res) => {
+    const { ticketId, status } = req.body;
+    let sql = 'UPDATE tickets SET status = ?';
+    const params = [status];
+
+    if (status === 'Terbuka') {
+        sql += ', tanggal_perbaikan = NULL';
+    } else {
+        sql += ', tanggal_perbaikan = NOW()';
+    }
+
+    sql += ' WHERE id = ?';
+    params.push(ticketId);
+
+    db.query(sql, params, (err) => {
+        if (err) return res.status(500).send('Error updating ticket');
+        res.send({ success: true });
     });
 });
 
@@ -435,27 +538,6 @@ app.get('/logout', (req, res) => {
         }
         res.clearCookie('connect.sid'); // Hapus cookie sesi jika ada
         res.redirect('/login'); // Redirect ke halaman login setelah logout
-    });
-});
-
-// Route untuk memperbarui status tiket
-app.post('/tickets/update', isAuthenticated, (req, res) => {
-    const { ticketId, status } = req.body;
-    let sql = 'UPDATE tickets SET status = ?';
-    const params = [status];
-
-    if (status === 'Terbuka') {
-        sql += ', tanggal_perbaikan = NULL';
-    } else {
-        sql += ', tanggal_perbaikan = NOW()';
-    }
-
-    sql += ' WHERE id = ?';
-    params.push(ticketId);
-
-    db.query(sql, params, (err) => {
-        if (err) return res.status(500).send('Error updating ticket');
-        res.send({ success: true });
     });
 });
 
