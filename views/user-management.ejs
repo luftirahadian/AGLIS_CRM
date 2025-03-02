@@ -20,15 +20,18 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Daftar Pengguna</h3>
-                        <div class="card-tools">
-                            <button class="btn btn-block bg-gradient-primary" data-toggle="modal" data-target="#addUserModal">Tambah Pengguna</button>
-                        </div>
+                        <% if (userRole !== 'teknisi') { %>
+                            <div class="card-tools">
+                                <button class="btn btn-block bg-gradient-primary" data-toggle="modal" data-target="#addUserModal">Tambah Pengguna</button>
+                            </div>
+                        <% } %>
                     </div>
                     <div class="card-body">
                         <table id="userTable" class="table table-bordered table-striped">
                             <thead>
                                 <tr>
                                     <th>No.</th>
+                                    <th>Username</th>
                                     <th>Nama</th>
                                     <th>Email</th>
                                     <th>Password</th>
@@ -38,31 +41,40 @@
                             </thead>
                             <tbody>
                                 <% users.forEach((user, index) => { %>
-                                    <tr>
-                                        <td><%= index + 1 %></td>
-                                        <td><%= user.nama %></td>
-                                        <td><%= user.email %></td>
-                                        <td>******</td>
-                                        <td><%= user.role %></td>
-                                        <td>
-                                            <button class="btn btn-info btn-sm edit-user" 
-                                                    data-id="<%= user.id %>" 
-                                                    data-nama="<%= user.nama %>" 
-                                                    data-email="<%= user.email %>" 
-                                                    data-role="<%= user.role %>" 
-                                                    data-toggle="modal" 
-                                                    data-target="#editUserModal">Edit</button>
-                                            <button class="btn btn-danger btn-sm delete-user" data-id="<%= user.id %>">Hapus</button>
-                                        </td>
-                                    </tr>
+                                    <% if (user.role !== 'superadmin' || (userRole !== 'admin' && userRole !== 'teknisi')) { %>
+                                        <tr>
+                                            <td><%= index + 1 %></td>
+                                            <td><%= user.username %></td>
+                                            <td><%= user.nama %></td>
+                                            <td><%= user.email %></td>
+                                            <td>******</td>
+                                            <td><%= user.role %></td>
+                                            <td>
+                                                <button class="btn btn-info btn-sm edit-user" 
+                                                        data-id="<%= user.id %>" 
+                                                        data-nama="<%= user.nama %>" 
+                                                        data-email="<%= user.email %>" 
+                                                        data-username="<%= user.username %>" 
+                                                        data-role="<%= user.role %>" 
+                                                        data-toggle="modal" 
+                                                        data-target="#editUserModal">Edit</button>
+                                                <% if (userRole !== 'teknisi') { %>
+                                                    <button class="btn btn-danger btn-sm delete-user" data-id="<%= user.id %>">Hapus</button>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% } %>
                                 <% }); %>
                             </tbody>
                         </table>
                     </div>
                 </div>
+                
             </div>
         </section>
     </div>
+
+    
 
     <%- include('partials/footer.ejs') %>
 </div>
@@ -80,6 +92,10 @@
             <div class="modal-body">
                 <form id="addUserForm">
                     <div class="form-group">
+                        <div class="form-group">
+                            <label for="userUsername">Username</label>
+                            <input type="text" class="form-control" id="userUsername" name="username" required>
+                        </div>
                         <label for="userName">Nama</label>
                         <input type="text" class="form-control" id="userName" name="nama" required>
                     </div>
@@ -98,8 +114,10 @@
                     <div class="form-group">
                         <label for="userRole">Role</label>
                         <select class="form-control" id="userRole" name="role" required>
+                            <option value="superadmin">Superadmin</option>
                             <option value="admin">Admin</option>
                             <option value="user">User</option>
+                            <option value="teknisi">Teknisi</option>
                         </select>
                     </div>
                 </form>
@@ -126,6 +144,10 @@
                 <form id="editUserForm">
                     <input type="hidden" id="editUserId" name="userId">
                     <div class="form-group">
+                        <label for="editUserUsername">Username</label>
+                        <input type="text" class="form-control" id="editUserUsername" name="userUsername" readonly>
+                    </div>
+                    <div class="form-group">
                         <label for="editUserName">Nama</label>
                         <input type="text" class="form-control" id="editUserName" name="userName" readonly>
                     </div>
@@ -136,8 +158,10 @@
                     <div class="form-group">
                         <label for="editUserRole">Role</label>
                         <select class="form-control" id="editUserRole" name="userRole" required>
+                            <option value="superadmin">Superadmin</option>
                             <option value="admin">Admin</option>
                             <option value="user">User</option>
+                            <option value="teknisi">Teknisi</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -184,13 +208,15 @@
 
         $('.edit-user').on('click', function() {
             const userId = $(this).data('id');
+            const userUsername = $(this).data('username');
             const userName = $(this).data('nama');
             const userEmail = $(this).data('email');
             const userRole = $(this).data('role');
 
-            console.log('Editing user:', userId, userName, userEmail, userRole);
+            console.log('Editing user:', userId, userName, userEmail, userUsername, userRole);
 
             $('#editUserId').val(userId);
+            $('#editUserUsername').val(userUsername);
             $('#editUserName').val(userName);
             $('#editUserEmail').val(userEmail);
             $('#editUserRole').val(userRole);

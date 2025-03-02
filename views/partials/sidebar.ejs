@@ -26,7 +26,7 @@
                         <p>Daftar Tiket</p>
                     </a>
                 </li>
-                <% if (userRole && userRole === 'admin') { %>
+                <% if (userRole === 'superadmin' || userRole === 'admin') { %>
                     <li class="nav-item">
                         <a href="/create" class="nav-link">
                             <i class="nav-icon fas fa-plus"></i>
@@ -39,6 +39,14 @@
                             <p>Statistik</p>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="/users" class="nav-link">
+                            <i class="nav-icon fas fa-users"></i>
+                            <p>Pengelolaan Pengguna</p>
+                        </a>
+                    </li>
+                <% } %>
+                <% if (userRole === 'teknisi') { %>
                     <li class="nav-item">
                         <a href="/users" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>

@@ -54,10 +54,61 @@ function isAuthenticated(req, res, next) {
 // Middleware untuk memeriksa role
 function checkRole(role) {
     return (req, res, next) => {
-        if (req.session.userRole === role) {
-            return next(); // Jika role sesuai, lanjutkan
+        if (req.session.userRole === role || req.session.userRole === 'superadmin') {
+            return next(); // Jika role sesuai atau pengguna adalah superadmin, lanjutkan
         }
         res.redirect('/'); // Jika tidak, arahkan ke halaman utama atau halaman lain
+    };
+}
+
+// Middleware untuk memeriksa role superadmin
+function checkSuperAdmin(req, res, next) {
+    if (req.session.userRole === 'superadmin') {
+        return next(); // Jika pengguna adalah superadmin, lanjutkan
+    }
+    res.redirect('/'); // Jika tidak, arahkan ke halaman utama atau halaman lain
+}
+
+// Middleware untuk memeriksa privilege berdasarkan role
+function checkPrivileges(requiredRoles) {
+    return (req, res, next) => {
+        const userRole = req.session.userRole;
+
+        // Jika pengguna adalah superadmin, izinkan semua akses
+        if (userRole === 'superadmin') {
+            return next();
+        }
+
+        // Jika pengguna adalah admin, periksa akses
+        if (userRole === 'admin') {
+            if (requiredRoles.includes('viewAllUsers')) {
+                return next(); // Admin bisa melihat semua pengguna
+            }
+            if (requiredRoles.includes('viewTickets') || requiredRoles.includes('editTickets') || requiredRoles.includes('createTickets')) {
+                return next(); // Admin bisa melihat, mengubah, dan membuat tiket
+            }
+            if (requiredRoles.includes('viewOwnUser') && req.session.userId === req.params.id) {
+                return next(); // Admin bisa melihat dan mengubah data user sendiri
+            }
+            if (requiredRoles.includes('viewTechnicianUsers')) {
+                // Logika untuk melihat data user role teknisi
+                return next();
+            }
+            // Tambahkan logika lain sesuai kebutuhan
+        }
+
+        // Jika pengguna adalah teknisi, periksa akses
+        if (userRole === 'teknisi') {
+            if (requiredRoles.includes('viewTickets') || requiredRoles.includes('editTickets')) {
+                return next(); // Teknisi bisa melihat dan mengubah data tiket
+            }
+            if (requiredRoles.includes('viewOwnUser') && req.session.userId === req.params.id) {
+                return next(); // Teknisi bisa melihat dan mengubah data user sendiri
+            }
+        }
+
+        // Jika tidak memenuhi syarat, arahkan ke halaman utama atau kirim pesan kesalahan
+        res.status(403).send('Access denied'); // Akses ditolak
     };
 }
 
@@ -125,7 +176,7 @@ app.get('/', isAuthenticated, (req, res) => {
 });
 
 // Rute untuk menampilkan daftar tiket
-app.get('/list', isAuthenticated, (req, res) => {
+app.get('/list', isAuthenticated, checkPrivileges(['viewTickets']), (req, res) => {
     const sql = 'SELECT * FROM tickets';
     db.query(sql, (err, results) => {
         if (err) {
@@ -181,7 +232,7 @@ app.get('/statistic', isAuthenticated, (req, res) => {
 });
 
 // Rute untuk membuat tiket
-app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
+app.get('/create', isAuthenticated, checkPrivileges(['createTickets']), (req, res) => {
     getNewTicketNumber((err, newTicketNumber) => {
         if (err) {
             console.error('Error fetching last ticket number:', err);
@@ -199,7 +250,7 @@ app.get('/create', isAuthenticated, checkRole('admin'), (req, res) => {
 });
 
 // Rute untuk membuat tiket
-app.post('/ticket/create', isAuthenticated, async (req, res) => {
+app.post('/ticket/create', isAuthenticated, checkPrivileges(['createTickets']), async (req, res) => {
     getNewTicketNumber(async (err, newTicketNumber) => {
         if (err) {
             console.error('Error fetching last ticket number:', err);
@@ -253,8 +304,8 @@ _Ttd Pelapor_ 📝 *${pelapor}*`;
             // Daftar penerima
             const recipients = [
                 { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
-                { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
-                { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
+                // { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+                // { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
             ];
 
             try {
@@ -314,7 +365,7 @@ app.get('/ticket/edit/:id', isAuthenticated, (req, res) => {
 });
 
 // Rute untuk mengupdate tiket
-app.post('/ticket/update/:id', isAuthenticated, async (req, res) => {
+app.post('/ticket/update/:id', isAuthenticated, checkPrivileges(['editTickets']), async (req, res) => {
     const ticketId = req.params.id;
 
     // Log semua data yang diterima
@@ -382,7 +433,7 @@ app.post('/ticket/update/:id', isAuthenticated, async (req, res) => {
         const message = `✅ *Tiket aduan telah diperbarui* 🔔
     *Tanggal :* ${updatedAt}
 
-*No Tiket:* ${no_tiket}
+*No Tiket:* ${ticketId}
 *CID:* ${cid}
 *Nama:* ${nama}
 *Alamat:* ${alamat}
@@ -411,8 +462,8 @@ _Ttd Teknisi_ 📝 *${teknisi}*`;
         // Daftar penerima
         const recipients = [
             { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
-            { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
-            { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
+            // { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+            // { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
         ];
 
         try {
@@ -454,16 +505,16 @@ app.get('/login', (req, res) => {
 
 // Route untuk menangani login
 app.post('/login', (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body; // Ambil username dari body
 
-    const sql = 'SELECT * FROM users WHERE email = ?';
-    db.query(sql, [email], (err, results) => {
+    const sql = 'SELECT * FROM users WHERE username = ?'; // Ubah query untuk menggunakan username
+    db.query(sql, [username], (err, results) => {
         if (err) {
             console.error('Error fetching user:', err);
             return res.status(500).send('Error fetching user');
         }
         if (results.length === 0) {
-            return res.render('login', { error: 'Email atau password salah.' }); // Render dengan pesan kesalahan
+            return res.render('login', { error: 'Username atau password salah.' }); // Ubah pesan kesalahan
         }
 
         const user = results[0];
@@ -474,29 +525,67 @@ app.post('/login', (req, res) => {
             req.session.userName = user.nama; // Simpan nama pengguna di session
             return res.redirect('/?login=success'); // Redirect dengan query string
         } else {
-            return res.render('login', { error: 'Email atau password salah.' }); // Render dengan pesan kesalahan
+            return res.render('login', { error: 'Username atau password salah.' }); // Ubah pesan kesalahan
         }
     });
 });
 
 // Route untuk halaman pengelolaan pengguna
 app.get('/users', isAuthenticated, (req, res) => {
-    const sql = 'SELECT * FROM users';
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('Error fetching users:', err);
-            return res.status(500).send('Error fetching users');
-        }
-        res.render('user-management', {
-            users: results,
-            userRole: req.session.userRole,
-            userName: req.session.userName // Kirim nama pengguna
+    const userRole = req.session.userRole;
+    const userId = req.session.userId;
+
+    let sql;
+    if (userRole === 'teknisi') {
+        // Jika role teknisi, hanya ambil data pengguna itu sendiri
+        sql = 'SELECT * FROM users WHERE id = ? AND role = "teknisi"';
+        db.query(sql, [userId], (err, results) => {
+            if (err) {
+                console.error('Error fetching user:', err);
+                return res.status(500).send('Error fetching user');
+            }
+            res.render('user-management', {
+                users: results,
+                userRole: userRole,
+                userName: req.session.userName // Kirim nama pengguna
+            });
         });
-    });
+    } else if (userRole === 'admin') {
+        // Jika role admin, ambil pengguna dengan role admin dan teknisi
+        sql = 'SELECT * FROM users WHERE role IN ("admin", "teknisi")';
+        db.query(sql, (err, results) => {
+            if (err) {
+                console.error('Error fetching users:', err);
+                return res.status(500).send('Error fetching users');
+            }
+            res.render('user-management', {
+                users: results,
+                userRole: userRole,
+                userName: req.session.userName // Kirim nama pengguna
+            });
+        });
+    } else if (userRole === 'superadmin') {
+        // Jika role superadmin, ambil semua pengguna
+        sql = 'SELECT * FROM users';
+        db.query(sql, (err, results) => {
+            if (err) {
+                console.error('Error fetching users:', err);
+                return res.status(500).send('Error fetching users');
+            }
+            res.render('user-management', {
+                users: results,
+                userRole: userRole,
+                userName: req.session.userName // Kirim nama pengguna
+            });
+        });
+    } else {
+        // Jika role tidak valid, arahkan ke halaman lain atau tampilkan pesan kesalahan
+        return res.status(403).send('Access denied'); // Akses ditolak
+    }
 });
 
 // Route untuk menambah pengguna
-app.post('/users/add', isAuthenticated, (req, res) => {
+app.post('/users/add', isAuthenticated, checkPrivileges(['createUser']), (req, res) => {
     // console.log('Data yang diterima:', req.body); // Log data yang diterima
     const { nama, email, password, role } = req.body;
 
@@ -521,7 +610,7 @@ app.post('/users/add', isAuthenticated, (req, res) => {
 });
 
 // Route untuk menghapus pengguna
-app.post('/users/delete', (req, res) => {
+app.post('/users/delete', isAuthenticated, checkPrivileges(['deleteAllUsers']), (req, res) => {
     const { id } = req.body;
     db.query('DELETE FROM users WHERE id = ?', [id], (err) => {
         if (err) return res.status(500).send('Error deleting user');
@@ -542,7 +631,7 @@ app.get('/logout', (req, res) => {
 });
 
 // Route untuk mengupdate pengguna
-app.post('/users/update', isAuthenticated, (req, res) => {
+app.post('/users/update', isAuthenticated, checkPrivileges(['editAllUsers']), (req, res) => {
     // console.log('Data yang diterima:', req.body); // Tambahkan log ini
     const { userId, userRole, userPassword, userPasswordConfirm } = req.body;
 
@@ -597,13 +686,13 @@ app.post('/users/edit/:id', isAuthenticated, (req, res) => {
 });
 
 // Uji pengiriman pesan ke nomor dan grup
-app.get('/test-send-message', async (req, res) => {
+app.get('/send-message', async (req, res) => {
     const message = 'Hello, this is a message to the group and individual!';
 
     const recipients = [
         { phone: '628197670700', message: message, isGroup: false }, // Nomor individu
-        { phone: '120363044550799792', message: message, isGroup: true }, // Grup 1
-        { phone: '120363277167789572', message: message, isGroup: true }  // Grup 2
+        // { phone: '120363044550799792', message: message, isGroup: true }, // Grup 1
+        // { phone: '120363277167789572', message: message, isGroup: true }  // Grup 2
     ];
 
     try {
