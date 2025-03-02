@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Role - AGLIS Ticketing System</title>
+    <link rel="stylesheet" href="/css/adminlte.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+</head>
+<body class="control-sidebar-slide-open sidebar-mini layout-fixed layout-navbar-fixed accent-info text-sm" style="height: auto;">
+    <div class="wrapper">
+        <%- include('partials/header.ejs') %>
+        <%- include('partials/sidebar.ejs') %>
+    
+        <div class="content-wrapper">
+            <section class="content">
+                <div class="container-fluid">
+                    <h1>Manajemen Role</h1>
+                    <div class="card col-md-6">
+                        <div class="card-header">
+                            <h3 class="card-title">Tambah Role Baru</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="addRoleForm">
+                                <div class="form-group">
+                                    <label for="roleName">Nama Role</label>
+                                    <input type="text" class="form-control" id="roleName" name="name" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Tambah Role</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card col-md-6">
+                        <div class="card-header">
+                            <h3 class="card-title">Daftar Role</h3>
+                        </div>
+                        <div class="card-body">
+                            <table id="roleTable" class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>Nama Role</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% roles.forEach((role, index) => { %>
+                                        <tr>
+                                            <td><%= index + 1 %></td>
+                                            <td><%= role.name %></td>
+                                            <td>
+                                                <button class="btn btn-danger btn-sm delete-role" data-id="<%= role.id %>">Hapus</button>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <%- include('partials/footer.ejs') %>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        // Tambahkan event listener untuk menghapus role
+        document.querySelectorAll('.delete-role').forEach(button => {
+            button.addEventListener('click', function() {
+                const roleId = this.getAttribute('data-id');
+                fetch(`/role/delete/${roleId}`, { method: 'DELETE' })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            return response.text().then(text => {
+                                console.error('Error response:', text);
+                                throw new Error('Network response was not ok');
+                            });
+                        }
+                    })
+                    .then(data => {
+                        toastr.success(data.message);
+                        location.reload();
+                    })
+                    .catch(err => {
+                        console.error('Error deleting role:', err);
+                        toastr.error('Terjadi kesalahan saat menghapus role.');
+                    });
+            });
+        });
+
+        // Tambahkan event listener untuk menambah role
+        document.getElementById('addRoleForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const roleName = document.getElementById('roleName').value.trim(); // Menghapus spasi di awal dan akhir
+
+            console.log('Role Name:', roleName); // Log nama role sebelum pengiriman
+
+            if (!roleName) {
+                console.error('Role name is empty.'); // Log jika nama role kosong
+                toastr.error('Nama role tidak boleh kosong.'); // Notifikasi gagal
+                return; // Hentikan eksekusi jika nama role kosong
+            }
+
+            try {
+                const response = await fetch('/role/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: roleName }) // Pastikan ini mengirimkan data yang benar
+                });
+
+                console.log('Response Status:', response.status); // Log status respons
+                if (!response.ok) {
+                    const text = await response.text(); // Ambil teks respons untuk debugging
+                    console.error('Error response:', text);
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json(); // Mengharapkan respons dalam format JSON
+                toastr.success(data.message); // Notifikasi sukses menggunakan pesan dari respons
+                location.reload(); // Reload halaman setelah menambah
+            } catch (error) {
+                console.error('Error:', error);
+                toastr.error('Gagal menambah role.'); // Notifikasi gagal
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -92,10 +92,10 @@
             <div class="modal-body">
                 <form id="addUserForm">
                     <div class="form-group">
-                        <div class="form-group">
-                            <label for="userUsername">Username</label>
-                            <input type="text" class="form-control" id="userUsername" name="username" required>
-                        </div>
+                        <label for="userUsername">Username</label>
+                        <input type="text" class="form-control" id="userUsername" name="username" required>
+                    </div>
+                    <div class="form-group">
                         <label for="userName">Nama</label>
                         <input type="text" class="form-control" id="userName" name="nama" required>
                     </div>
@@ -114,7 +114,9 @@
                     <div class="form-group">
                         <label for="userRole">Role</label>
                         <select class="form-control" id="userRole" name="role" required>
-                            <option value="superadmin">Superadmin</option>
+                            <% if (userRole !== 'admin') { %>
+                                <option value="superadmin">Superadmin</option>
+                            <% } %>
                             <option value="admin">Admin</option>
                             <option value="user">User</option>
                             <option value="teknisi">Teknisi</option>
@@ -157,12 +159,18 @@
                     </div>
                     <div class="form-group">
                         <label for="editUserRole">Role</label>
-                        <select class="form-control" id="editUserRole" name="userRole" required>
-                            <option value="superadmin">Superadmin</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
-                            <option value="teknisi">Teknisi</option>
-                        </select>
+                        <% if (userRole === 'teknisi') { %>
+                            <input type="text" class="form-control" id="editUserRole" name="userRole" value="<%= userRole %>" readonly>
+                        <% } else { %>
+                            <select class="form-control" id="editUserRole" name="userRole" required>
+                                <% if (userRole !== 'admin') { %>
+                                    <option value="superadmin">Superadmin</option>
+                                <% } %>
+                                <option value="admin">Admin</option>
+                                <option value="user">User</option>
+                                <option value="teknisi">Teknisi</option>
+                            </select>
+                        <% } %>
                     </div>
                     <div class="form-group">
                         <label for="editUserPassword">Password Baru (kosongkan jika tidak ingin mengubah)</label>
@@ -198,6 +206,8 @@
             }
 
             const formData = $('#addUserForm').serialize();
+            console.log('Form Data:', formData);
+
             $.post('/users/add', formData, function(response) {
                 toastr.success('Pengguna berhasil ditambahkan!');
                 location.reload();

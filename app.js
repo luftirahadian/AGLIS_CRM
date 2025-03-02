@@ -1,22 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-// const dbConnection = require('./db'); // Mengimpor koneksi dari db.js
-// const tickets = require('./dummyData'); // Impor dummy data tiket
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
 const { sendMessage } = require('./services/wablas');
+const util = require('util');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Koneksi ke database
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root', // Ganti dengan username database Anda
-    password: 'Gapura#2024!!', // Ganti dengan password database Anda
-    database: 'crm_ticketing'
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
 });
 
 // Menghubungkan ke database
@@ -33,9 +33,19 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(session({ secret: 'your_secret_key', resave: false, saveUninitialized: true }));
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your_secret_key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60 * 24
+    }
+}));
 
 // Middleware untuk menyimpan rute aktif
 app.use((req, res, next) => {
@@ -45,10 +55,12 @@ app.use((req, res, next) => {
 
 // Middleware untuk memeriksa autentikasi
 function isAuthenticated(req, res, next) {
+    console.log('Session:', req.session); // Log session
     if (req.session.userId) {
-        return next(); // Jika pengguna sudah login, lanjutkan ke rute berikutnya
+        return next(); // Pengguna terautentikasi, lanjutkan ke rute berikutnya
     }
-    res.redirect('/login'); // Jika tidak, alihkan ke halaman login
+    console.log('Error: User not authenticated.'); // Log error
+    res.redirect('/login'); // Arahkan ke halaman login jika tidak terautentikasi
 }
 
 // Middleware untuk memeriksa role
@@ -73,41 +85,43 @@ function checkSuperAdmin(req, res, next) {
 function checkPrivileges(requiredRoles) {
     return (req, res, next) => {
         const userRole = req.session.userRole;
+        console.log('User Role:', userRole); // Log user role
+        console.log('Required Roles:', requiredRoles); // Log required roles
 
         // Jika pengguna adalah superadmin, izinkan semua akses
         if (userRole === 'superadmin') {
             return next();
         }
 
-        // Jika pengguna adalah admin, periksa akses
-        if (userRole === 'admin') {
-            if (requiredRoles.includes('viewAllUsers')) {
-                return next(); // Admin bisa melihat semua pengguna
-            }
-            if (requiredRoles.includes('viewTickets') || requiredRoles.includes('editTickets') || requiredRoles.includes('createTickets')) {
-                return next(); // Admin bisa melihat, mengubah, dan membuat tiket
-            }
-            if (requiredRoles.includes('viewOwnUser') && req.session.userId === req.params.id) {
-                return next(); // Admin bisa melihat dan mengubah data user sendiri
-            }
-            if (requiredRoles.includes('viewTechnicianUsers')) {
-                // Logika untuk melihat data user role teknisi
-                return next();
-            }
-            // Tambahkan logika lain sesuai kebutuhan
+        // Daftar akses berdasarkan role
+        const privileges = {
+            admin: [
+                'createUser',
+                'viewAllUsers',
+                'editAllUsers',
+                'viewTickets',
+                'editTickets',
+                'createTickets',
+                'viewOwnUser'
+            ],
+            teknisi: [
+                'viewTickets',
+                'editTickets',
+                'viewOwnUser'
+            ]
+        };
+
+        // Periksa akses berdasarkan role
+        if (privileges[userRole] && privileges[userRole].some(role => requiredRoles.includes(role))) {
+            return next(); // Izinkan akses jika role sesuai
         }
 
-        // Jika pengguna adalah teknisi, periksa akses
-        if (userRole === 'teknisi') {
-            if (requiredRoles.includes('viewTickets') || requiredRoles.includes('editTickets')) {
-                return next(); // Teknisi bisa melihat dan mengubah data tiket
-            }
-            if (requiredRoles.includes('viewOwnUser') && req.session.userId === req.params.id) {
-                return next(); // Teknisi bisa melihat dan mengubah data user sendiri
-            }
+        // Tambahan untuk teknisi: akses ke data pengguna sendiri
+        if (userRole === 'teknisi' && requiredRoles.includes('viewOwnUser') && req.session.userId === req.params.id) {
+            return next(); // Teknisi bisa melihat dan mengubah data user sendiri
         }
 
-        // Jika tidak memenuhi syarat, arahkan ke halaman utama atau kirim pesan kesalahan
+        // Jika tidak memenuhi syarat, kirim pesan kesalahan
         res.status(403).send('Access denied'); // Akses ditolak
     };
 }
@@ -136,6 +150,8 @@ function getNewTicketNumber(callback) {
         callback(null, newTicketNumber);
     });
 }
+
+const dbQuery = util.promisify(db.query).bind(db); // Mengubah db.query menjadi promise
 
 // Rute untuk halaman utama
 app.get('/', isAuthenticated, (req, res) => {
@@ -168,7 +184,8 @@ app.get('/', isAuthenticated, (req, res) => {
                     totalClosedTickets: closedResult[0].total,
                     userRole: req.session.userRole,
                     userName: req.session.userName,
-                    loginSuccess: req.query.login === 'success' // Kirim status login
+                    loginSuccess: req.query.login === 'success', // Kirim status login
+                    currentPage: 'dashboard' // Menetapkan currentPage untuk dashboard
                 });
             });
         });
@@ -176,20 +193,20 @@ app.get('/', isAuthenticated, (req, res) => {
 });
 
 // Rute untuk menampilkan daftar tiket
-app.get('/list', isAuthenticated, checkPrivileges(['viewTickets']), (req, res) => {
-    const sql = 'SELECT * FROM tickets';
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('Error fetching tickets:', err);
-            return res.status(500).send('Error fetching tickets');
-        }
+app.get('/list', isAuthenticated, checkPrivileges(['viewTickets']), async (req, res) => {
+    try {
+        const results = await dbQuery('SELECT * FROM tickets');
         res.render('list', {
             tickets: results,
             userRole: req.session.userRole,
             userName: req.session.userName,
-            formatDateTime
+            formatDateTime,
+            currentPage: 'list'
         });
-    });
+    } catch (err) {
+        console.error('Error fetching tickets:', err);
+        return res.status(500).send('Error fetching tickets');
+    }
 });
 
 // Rute untuk mendapatkan statistik tiket
@@ -215,7 +232,8 @@ app.get('/statistic', isAuthenticated, (req, res) => {
                 totalOpenTickets: 0,
                 totalClosedTickets: 0,
                 userRole: req.session.userRole,
-                userName: req.session.userName
+                userName: req.session.userName,
+                currentPage: 'statistic' // Menetapkan currentPage untuk statistik
             });
         }
 
@@ -226,7 +244,8 @@ app.get('/statistic', isAuthenticated, (req, res) => {
             totalOpenTickets: 0, // Ganti dengan logika yang sesuai jika diperlukan
             totalClosedTickets: 0, // Ganti dengan logika yang sesuai jika diperlukan
             userRole: req.session.userRole,
-            userName: req.session.userName
+            userName: req.session.userName,
+            currentPage: 'statistic' // Menetapkan currentPage untuk statistik
         });
     });
 });
@@ -244,7 +263,8 @@ app.get('/create', isAuthenticated, checkPrivileges(['createTickets']), (req, re
             createdAt,
             userRole: req.session.userRole,
             userName: req.session.userName,
-            formatDateTime
+            formatDateTime,
+            currentPage: 'create' // Menetapkan currentPage untuk membuat tiket
         });
     });
 });
@@ -508,7 +528,12 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body; // Ambil username dari body
 
     const sql = 'SELECT * FROM users WHERE username = ?'; // Ubah query untuk menggunakan username
+    const startTime = Date.now(); // Mulai waktu
+
     db.query(sql, [username], (err, results) => {
+        const duration = Date.now() - startTime; // Hitung durasi
+        console.log(`Query duration: ${duration} ms`); // Log durasi query
+
         if (err) {
             console.error('Error fetching user:', err);
             return res.status(500).send('Error fetching user');
@@ -547,7 +572,8 @@ app.get('/users', isAuthenticated, (req, res) => {
             res.render('user-management', {
                 users: results,
                 userRole: userRole,
-                userName: req.session.userName // Kirim nama pengguna
+                userName: req.session.userName,
+                currentPage: 'user-management' // Menetapkan currentPage untuk user-management
             });
         });
     } else if (userRole === 'admin') {
@@ -561,7 +587,8 @@ app.get('/users', isAuthenticated, (req, res) => {
             res.render('user-management', {
                 users: results,
                 userRole: userRole,
-                userName: req.session.userName // Kirim nama pengguna
+                userName: req.session.userName,
+                currentPage: 'user-management' // Menetapkan currentPage untuk user-management
             });
         });
     } else if (userRole === 'superadmin') {
@@ -575,7 +602,8 @@ app.get('/users', isAuthenticated, (req, res) => {
             res.render('user-management', {
                 users: results,
                 userRole: userRole,
-                userName: req.session.userName // Kirim nama pengguna
+                userName: req.session.userName,
+                currentPage: 'user-management' // Menetapkan currentPage untuk user-management
             });
         });
     } else {
@@ -585,24 +613,28 @@ app.get('/users', isAuthenticated, (req, res) => {
 });
 
 // Route untuk menambah pengguna
-app.post('/users/add', isAuthenticated, checkPrivileges(['createUser']), (req, res) => {
-    // console.log('Data yang diterima:', req.body); // Log data yang diterima
-    const { nama, email, password, role } = req.body;
+app.post('/users/add', isAuthenticated, checkPrivileges(['createUser']), async (req, res) => {
+    const { username, nama, email, password, role } = req.body;
 
     // Validasi di sini jika diperlukan
-    if (!nama || !email || !password || !role) {
+    if (!username || !nama || !email || !password || !role) {
         return res.status(400).send('Semua field harus diisi.');
+    }
+
+    // Cek apakah pengguna yang membuat adalah admin dan mencoba memberikan role superadmin
+    if (req.session.userRole === 'admin' && role === 'superadmin') {
+        return res.status(403).send('Anda tidak diizinkan untuk membuat pengguna dengan role Superadmin.');
     }
 
     // Enkripsi password
     const hashedPassword = bcrypt.hashSync(password, 10); // Menggunakan bcrypt untuk mengenkripsi password
 
-    const sql = 'INSERT INTO users (nama, email, password, role) VALUES (?, ?, ?, ?)';
-    const values = [nama, email, hashedPassword, role];
+    const sql = 'INSERT INTO users (username, nama, email, password, role) VALUES (?, ?, ?, ?, ?)';
+    const values = [username, nama, email, hashedPassword, role];
 
     db.query(sql, values, (err, result) => {
         if (err) {
-            console.error('Error adding user:', err);
+            console.error('Error adding user:', err); // Log kesalahan
             return res.status(500).send('Error adding user');
         }
         res.send({ success: true }); // Kirim respons sukses
@@ -632,8 +664,17 @@ app.get('/logout', (req, res) => {
 
 // Route untuk mengupdate pengguna
 app.post('/users/update', isAuthenticated, checkPrivileges(['editAllUsers']), (req, res) => {
-    // console.log('Data yang diterima:', req.body); // Tambahkan log ini
     const { userId, userRole, userPassword, userPasswordConfirm } = req.body;
+
+    // Cek apakah pengguna yang mengedit adalah admin dan mencoba memberikan role superadmin
+    if (req.session.userRole === 'admin' && userRole === 'superadmin') {
+        return res.status(403).send('Anda tidak diizinkan untuk mengubah pengguna menjadi role Superadmin.');
+    }
+
+    // Cek apakah pengguna yang mengedit adalah admin dan mencoba mengubah role mereka sendiri
+    if (req.session.userId === userId && req.session.userRole === 'admin') {
+        return res.status(403).send('Anda tidak diizinkan untuk mengubah role Anda sendiri.');
+    }
 
     // Validasi password
     if (userPassword && userPassword !== userPasswordConfirm) {
@@ -722,7 +763,72 @@ app.get('/ticket/view/:id', (req, res) => {
     });
 });
 
+// Rute untuk halaman manajemen role
+app.get('/role', isAuthenticated, (req, res) => {
+    // Periksa apakah pengguna adalah superadmin
+    if (req.session.userRole !== 'superadmin') {
+        return res.status(403).send('Akses ditolak. Hanya superadmin yang dapat mengakses halaman ini.');
+    }
+
+    // Ambil semua role dari database
+    const sql = 'SELECT * FROM roles ORDER BY id ASC'; // Mengambil roles dan mengurutkannya berdasarkan ID
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error fetching roles:', err);
+            return res.status(500).send('Error fetching roles');
+        }
+        res.render('role', {
+            roles: results,
+            userRole: req.session.userRole,
+            userName: req.session.userName,
+            currentPage: 'role' // Menetapkan currentPage untuk role
+        });
+    });
+});
+
+// Rute untuk menambah role
+app.post('/role/add', isAuthenticated, async (req, res) => {
+    const { name } = req.body;
+
+    if (!name) {
+        return res.status(400).json({ error: 'Nama role tidak boleh kosong.' }); // Mengembalikan respons JSON
+    }
+
+    const sql = 'INSERT INTO roles (name) VALUES (?)';
+
+    try {
+        await dbQuery(sql, [name]); // Menggunakan dbQuery untuk menambahkan role
+        res.status(201).json({ message: 'Role added successfully' }); // Mengembalikan respons JSON
+    } catch (err) {
+        console.error('Error adding role:', err);
+        return res.status(500).json({ error: 'Error adding role' }); // Mengembalikan respons JSON
+    }
+});
+
+// Rute untuk menghapus role
+app.delete('/role/delete/:id', isAuthenticated, (req, res) => {
+    const roleId = req.params.id;
+    const sql = 'DELETE FROM roles WHERE id = ?';
+    db.query(sql, [roleId], (err) => {
+        if (err) {
+            console.error('Error deleting role:', err);
+            return res.status(500).json({ error: 'Error deleting role' }); // Mengembalikan respons JSON
+        }
+        res.status(200).json({ message: 'Role deleted successfully' }); // Mengembalikan respons JSON
+    });
+});
+
 // Mulai server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+app.use((req, res) => {
+    res.status(404).send('404 Not Found'); // Menangani route yang tidak ditemukan
+});
+
+// Middleware untuk menangani kesalahan
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
 });

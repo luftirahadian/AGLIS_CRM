@@ -14,43 +14,51 @@
         </div>
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                <li class="nav-item">
+                <li class="nav-item <% if (currentPage === 'dashboard') { %> active <% } %>">
                     <a href="/" class="nav-link">
                         <i class="nav-icon fas fa-tachometer-alt"></i>
                         <p>Dashboard</p>
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item <% if (currentPage === 'list') { %> active <% } %>">
                     <a href="/list" class="nav-link">
                         <i class="nav-icon fas fa-list"></i>
                         <p>Daftar Tiket</p>
                     </a>
                 </li>
                 <% if (userRole === 'superadmin' || userRole === 'admin') { %>
-                    <li class="nav-item">
+                    <li class="nav-item <% if (currentPage === 'create') { %> active <% } %>">
                         <a href="/create" class="nav-link">
                             <i class="nav-icon fas fa-plus"></i>
                             <p>Buat Tiket</p>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item <% if (currentPage === 'statistic') { %> active <% } %>">
                         <a href="/statistic" class="nav-link">
                             <i class="nav-icon fas fa-chart-pie"></i>
                             <p>Statistik</p>
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item <% if (currentPage === 'users') { %> active <% } %>">
                         <a href="/users" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
-                            <p>Pengelolaan Pengguna</p>
+                            <p>Manajemen User</p>
                         </a>
                     </li>
                 <% } %>
                 <% if (userRole === 'teknisi') { %>
-                    <li class="nav-item">
+                    <li class="nav-item <% if (currentPage === 'users') { %> active <% } %>">
                         <a href="/users" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
-                            <p>Pengelolaan Pengguna</p>
+                            <p>Manajemen User</p>
+                        </a>
+                    </li>
+                <% } %>
+                <% if (userRole === 'superadmin') { %>
+                    <li class="nav-item <% if (currentPage === 'role') { %> active <% } %>">
+                        <a href="/role" class="nav-link">
+                            <i class="nav-icon fas fa-user-shield"></i>
+                            <p>Manajemen Role</p>
                         </a>
                     </li>
                 <% } %>
