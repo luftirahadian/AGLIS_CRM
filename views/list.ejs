@@ -23,7 +23,9 @@
                 <h1>Daftar Tiket</h1>                
                 <!-- Tombol Buat Tiket Baru -->
                 <div class="mt-3">
-                    <a href="/create" class="btn bg-gradient-warning btn-lg">Buat Tiket Baru</a>
+                    <% if (userRoleId === 1 || userRoleId === 2) { %> <!-- 1 untuk Superadmin, 2 untuk Admin -->
+                        <a href="/create" class="btn bg-gradient-warning btn-lg">Buat Tiket Baru</a>
+                    <% } %>
                 </div>
 
                 <!-- Input Pencarian dan Filter -->
@@ -43,9 +45,7 @@
                                 <th>CID</th>
                                 <th>Nama</th>
                                 <th>Alamat</th>
-                                <!-- <th>No HP</th> -->
                                 <th>Komplain</th>
-                                <!-- <th>Pelapor</th> -->
                                 <th>Tanggal Laporan</th>
                                 <th>Status</th>
                                 <th class="action-column">Action</th>
@@ -59,15 +59,13 @@
                                     <td><%= ticket.cid %></td>
                                     <td><%= ticket.nama %></td>
                                     <td><%= ticket.alamat %></td>
-                                    <!-- <td><%= ticket.no_hp %></td> -->
                                     <td><%= ticket.komplain %></td>
-                                    <!-- <td><%= ticket.pelapor %></td> -->
                                     <td><%= formatDateTime(ticket.createdAt) %></td>
                                     <td class="status-column">
                                         <% if (ticket.status === 'Terbuka') { %>
-                                            <span class="btn btn-block bg-gradient-danger btn-sm disabled" title="Tiket ini masih terbuka">Terbuka <i class="fas fa-pause"></i></span>
+                                            <span class="btn btn-block bg-gradient-danger btn-sm disabled"><i class="fas fa-pause"></i> Terbuka</span>
                                         <% } else if (ticket.status === 'Selesai') { %>
-                                            <span class="btn btn-block bg-gradient-success btn-sm disabled" title="Tiket ini sudah selesai">Selesai <i class="fas fa-play"></i></span>
+                                            <span class="btn btn-block bg-gradient-success btn-sm disabled"><i class="fas fa-play"></i> Selesai</span>
                                         <% } %>
                                     </td>
                                     <td class="action-column">
@@ -153,11 +151,10 @@
         // Gunakan event delegation untuk menangani klik pada tombol detail
         $('#ticketTable tbody').on('click', '.detail-btn', function() {
             const ticketId = $(this).data('id'); // Ambil ID tiket dari data-id
-            // console.log('Detail button clicked for ticket ID:', ticketId);
             
             // Lakukan permintaan AJAX untuk mendapatkan detail tiket
             $.ajax({
-                url: `/ticket/${ticketId}`,
+                url: `/ticket/${ticketId}`, // Pastikan URL ini sesuai dengan rute di app.js
                 method: 'GET',
                 success: function(ticket) {
                     // Tampilkan detail tiket di modal
@@ -216,8 +213,8 @@
                     $('#ticketDetailModal').modal('show');
                 },
                 error: function(err) {
-                    //console.error('Error fetching ticket details:', err);
-                    alert('Terjadi kesalahan saat mengambil detail tiket.');
+                    console.error('Error fetching ticket details:', err);
+                    alert('Terjadi kesalahan saat mengambil detail tiket.'); // Tampilkan pesan kesalahan
                 }
             });
         });

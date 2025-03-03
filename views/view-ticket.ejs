@@ -16,10 +16,12 @@
         <div class="content-wrapper">
             <section class="content">
                 <div class="container-fluid">
-                    <h1>Detail Tiket</h1>
+                    <h2 class="text-center">Detail Tiket: <%= ticket.no_tiket %></h2>
                     
-                            <div class="content">
-                                <div class="container">
+                    <div class="content">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-md-6">
                                     <div class="card">
                                         <div class="card-header">
                                             <h3 class="card-title">Informasi Tiket</h3>
@@ -29,18 +31,42 @@
                                             <p><strong>CID:</strong> <%= ticket.cid %></p>
                                             <p><strong>Nama:</strong> <%= ticket.nama %></p>
                                             <p><strong>Alamat:</strong> <%= ticket.alamat %></p>
-                                            <p><strong>No. HP:</strong> <%= ticket.no_hp %></p>
                                             <p><strong>Komplain:</strong> <%= ticket.komplain %></p>
-                                            <p><strong>Status:</strong> <%= ticket.status %></p>
+                                            <p><strong>Tanggal Laporan:</strong> <%= formatDateTime(ticket.createdAt) %></p>
                                             <p><strong>Pelapor:</strong> <%= ticket.pelapor %></p>
-                                            <p><strong>Tanggal Dibuat:</strong> <%= ticket.createdAt %></p> <!-- Pastikan field ini ada di database -->
+                                            <p><strong>Status:</strong><% if (ticket.status === 'Terbuka') { %>
+                                                <span class="btn  bg-gradient-danger btn-sm "><i class="fas fa-pause"></i> Terbuka</span>
+                                            <% } else if (ticket.status === 'Selesai') { %>
+                                                <span class="btn  bg-gradient-success btn-sm "><i class="fas fa-play"></i> Selesai</span>
+                                            <% } %></p>
                                         </div>
                                         <div class="card-footer">
                                             <a href="/" class="btn btn-primary"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h3 class="card-title">Informasi Perbaikan</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <p><strong>Jenis Gangguan:</strong> <%= ticket.jenis_gangguan %></p>
+                                            <p><strong>Jenis Perbaikan:</strong> <%= ticket.jenis_perbaikan %></p>
+                                            <p><strong>Lokasi ODP:</strong> <%= ticket.lokasi_odp %></p>
+                                            <p><strong>Lokasi Closure:</strong> <%= ticket.lokasi_closure %></p>
+                                            <p><strong>Jarak Kabel:</strong> <%= ticket.jarak_kabel %></p>
+                                            <p><strong>Redaman Terakhir:</strong> <%= ticket.redaman_terakhir %></p>
+                                            <p><strong>Nama Wifi:</strong> <%= ticket.nama_wifi %></p>
+                                            <p><strong>Password Wifi:</strong> <%= ticket.password_wifi %></p>
+                                            <p><strong>Keterangan:</strong> <%= ticket.keterangan %></p>
+                                            <p><strong>Teknisi:</strong> <%= ticket.teknisi %></p>
+                                            <p><strong>Tanggal Perbaikan:</strong> <%= formatDateTime(ticket.updatedAt) %></p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            
                         </div>
                     </div>
                 </div>

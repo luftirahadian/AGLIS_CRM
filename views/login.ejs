@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AGLIS Ticketing System</title>
     <link rel="stylesheet" href="/css/adminlte.min.css">
+    <link rel="stylesheet" href="/css/alt/adminlte.extra-components.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body class="hold-transition login-page">
@@ -12,64 +14,79 @@
     <div class="login-logo">
         <a href="#"><b>AGLIS</b> Ticketing System</a>
     </div>
-    <!-- /.login-logo -->
     <div class="card">
-        <!-- // ... existing code ... -->
-<div class="card-body login-card-body">
-    <p class="login-box-msg">Silakan masuk untuk memulai sesi Anda</p>
+        <div class="card-body login-card-body">
+            <p class="login-box-msg">Silakan masuk untuk memulai sesi Anda</p>
 
-    <% if (typeof error !== 'undefined') { %>
-        <div class="alert alert-danger">
-            <%= error %>
-        </div>
-    <% } %>
+            <% if (typeof error !== 'undefined') { %>
+                <div class="alert alert-danger">
+                    <%= error %>
+                </div>
+            <% } %>
 
-    <form action="/login" method="POST">
-        <div class="input-group mb-3">
-            <input type="text" class="form-control" name="username" placeholder="Username" required>
-            <div class="input-group-append">
-                <div class="input-group-text">
-                    <span class="fas fa-user"></span>
+            <form action="/login" method="POST">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" name="username" placeholder="Username" required>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-user"></span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="input-group mb-3">
-            <input type="password" class="form-control" name="password" placeholder="Password" required>
-            <div class="input-group-append">
-                <div class="input-group-text">
-                    <span class="fas fa-lock"></span>
+                <div class="input-group mb-3">
+                    <input type="password" class="form-control" name="password" placeholder="Password" required>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-8">
-                <div class="icheck-primary">
-                    <input type="checkbox" id="remember">
-                    <label for="remember">
-                        Ingat Saya
-                    </label>
+                <div class="row">
+                    <div class="col-8">
+                        <div class="icheck-primary">
+                            <input type="checkbox" id="remember">
+                            <label for="remember">
+                                Ingat Saya
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+                    </div>
                 </div>
-            </div>
-            <!-- /.col -->
-            <div class="col-4">
-                <button type="submit" class="btn btn-primary btn-block">Masuk</button>
-            </div>
-            <!-- /.col -->
-        </div>
-    </form>
+            </form>
 
-    <p class="mb-1">
-        <a href="#">Lupa Password?</a>
-    </p>
-</div>
-<!-- // ... existing code ... -->
-        <!-- /.login-card-body -->
+            <p class="mb-1">
+                <a href="#">Lupa Password?</a>
+            </p>
+        </div>
     </div>
 </div>
-<!-- /.login-box -->
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="/js/adminlte.min.js"></script>
+<script>
+    $(document).ready(function() {
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeOut",
+            "hideMethod": "fadeIn"
+        };
+    });
+</script>
+
 </body>
 </html>

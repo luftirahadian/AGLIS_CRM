@@ -26,7 +26,7 @@
                         <p>Daftar Tiket</p>
                     </a>
                 </li>
-                <% if (userRole === 'superadmin' || userRole === 'admin') { %>
+                <% if (userRoleId === 1 || userRoleId === 2) { %>
                     <li class="nav-item <% if (currentPage === 'create') { %> active <% } %>">
                         <a href="/create" class="nav-link">
                             <i class="nav-icon fas fa-plus"></i>
@@ -39,22 +39,22 @@
                             <p>Statistik</p>
                         </a>
                     </li>
-                    <li class="nav-item <% if (currentPage === 'users') { %> active <% } %>">
-                        <a href="/users" class="nav-link">
+                    <li class="nav-item <% if (currentPage === 'user') { %> active <% } %>">
+                        <a href="/user" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
                             <p>Manajemen User</p>
                         </a>
                     </li>
                 <% } %>
-                <% if (userRole === 'teknisi') { %>
-                    <li class="nav-item <% if (currentPage === 'users') { %> active <% } %>">
-                        <a href="/users" class="nav-link">
+                <% if (userRoleId === 4) { %>
+                    <li class="nav-item <% if (currentPage === 'user') { %> active <% } %>">
+                        <a href="/user" class="nav-link">
                             <i class="nav-icon fas fa-users"></i>
                             <p>Manajemen User</p>
                         </a>
                     </li>
                 <% } %>
-                <% if (userRole === 'superadmin') { %>
+                <% if (userRoleId === 1) { %>
                     <li class="nav-item <% if (currentPage === 'role') { %> active <% } %>">
                         <a href="/role" class="nav-link">
                             <i class="nav-icon fas fa-user-shield"></i>
@@ -72,3 +72,5 @@
         </nav>
     </div>
 </aside>
+
+<% console.log('User Role ID:', userRoleId); %>
