@@ -231,6 +231,20 @@ async function authenticateUser(username, password) {
     return null; // Kembalikan null jika tidak ada pengguna yang cocok
 }
 
+// Fungsi untuk mengambil data dari tabel sites
+async function getSites() {
+    const sql = 'SELECT * FROM sites'; // Query untuk mengambil semua site
+    return new Promise((resolve, reject) => {
+        db.query(sql, (err, results) => {
+            if (err) {
+                return reject(err); // Jika ada kesalahan, tolak promise
+            }
+            resolve(results); // Kembalikan hasil
+        });
+    });
+}
+
+
 // Route untuk halaman login
 app.get('/login', (req, res) => {
     res.render('login', { error: null });
@@ -321,7 +335,7 @@ app.get('/list', isAuthenticated, async (req, res) => {
 });
 
 // Rute untuk halaman pembuatan tiket
-app.get('/create', isAuthenticated, checkPrivileges(['createUser']), async (req, res) => {
+app.get('/create', isAuthenticated, async (req, res) => {
     try {
         const newTicketNumber = await new Promise((resolve, reject) => {
             generateNewTicketNumber((err, ticketNumber) => {
@@ -333,13 +347,15 @@ app.get('/create', isAuthenticated, checkPrivileges(['createUser']), async (req,
         });
 
         const createdAt = new Date(); // Atur createdAt ke waktu saat ini
+        const sites = await getSites(); // Ambil data dari tabel sites
 
         res.render('create', {
             newTicketNumber: newTicketNumber, // Kirim nomor tiket baru ke tampilan
             userRoleId: req.session.userRoleId,
             userName: req.session.userName,
             currentPage: 'create', // Menetapkan currentPage untuk create
-            createdAt: createdAt // Kirim createdAt ke tampilan
+            createdAt: createdAt, // Kirim createdAt ke tampilan
+            sites: sites // Kirim data sites ke tampilan
         });
     } catch (error) {
         console.error('Error generating new ticket number:', error);
@@ -402,8 +418,8 @@ _Ttd Pelapor_ 📝 *${pelapor}*`;
             // Daftar penerima
             const recipients = [
                 { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
-                // { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
-                // { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
+                { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+                { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
             ];
 
             try {
@@ -867,6 +883,53 @@ app.get('/send-message', async (req, res) => {
         res.send('Pesan berhasil dikirim ke nomor dan grup!');
     } catch (error) {
         res.status(500).send('Gagal mengirim pesan ke nomor dan grup.');
+    }
+});
+
+// Rute untuk halaman manajemen site
+app.get('/sites', isAuthenticated, checkUserRole([1, 2]), async (req, res) => {
+    try {
+        const sites = await getSites(); // Ambil data dari tabel sites
+        const userName = req.session.userName; // Ambil userName dari session
+        const userRoleId = req.session.userRoleId; // Ambil userRoleId dari session
+        const currentPage = 'site'; // Menetapkan currentPage untuk sidebar
+        res.render('site', { sites, userName, userRoleId, currentPage }); // Render halaman site dengan data sites, userName, userRoleId, dan currentPage
+    } catch (error) {
+        console.error('Error fetching sites:', error);
+        res.status(500).send('Error fetching sites');
+    }
+});
+
+// Rute untuk menambahkan site
+app.post('/sites/add', isAuthenticated, checkUserRole([1, 2]), async (req, res) => {
+    const { nama, wa1, wa2, grup_wa1, grup_wa2, grup_wa3 } = req.body;
+
+    const sql = 'INSERT INTO sites (nama, wa1, wa2, grup_wa1, grup_wa2, grup_wa3) VALUES (?, ?, ?, ?, ?, ?)';
+    const values = [nama, wa1, wa2, grup_wa1, grup_wa2, grup_wa3];
+
+    try {
+        await dbQuery(sql, values); // Menggunakan dbQuery untuk menambahkan site
+        res.send({ success: true }); // Kirim respons sukses
+    } catch (error) {
+        console.error('Error adding site:', error);
+        res.status(500).send('Error adding site'); // Kirim respons kesalahan
+    }
+});
+
+// Rute untuk mengedit site
+app.put('/sites/edit/:id', isAuthenticated, checkUserRole([1, 2]), async (req, res) => {
+    const siteId = req.params.id;
+    const { nama, wa1, wa2, grup_wa1, grup_wa2, grup_wa3 } = req.body;
+
+    const sql = 'UPDATE sites SET nama = ?, wa1 = ?, wa2 = ?, grup_wa1 = ?, grup_wa2 = ?, grup_wa3 = ? WHERE id = ?';
+    const values = [nama, wa1, wa2, grup_wa1, grup_wa2, grup_wa3, siteId];
+
+    try {
+        await dbQuery(sql, values); // Menggunakan dbQuery untuk memperbarui site
+        res.send({ success: true }); // Kirim respons sukses
+    } catch (error) {
+        console.error('Error updating site:', error);
+        res.status(500).send('Error updating site'); // Kirim respons kesalahan
     }
 });
 
