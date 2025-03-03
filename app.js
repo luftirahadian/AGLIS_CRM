@@ -564,8 +564,8 @@ app.post('/ticket/update/:id', isAuthenticated, checkPrivileges(['editTickets'])
         // Daftar penerima
         const recipients = [
             { phone: nohp, message: message, isGroup: false }, // Kirim ke nomor pelanggan
-            // { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
-            // { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
+            { phone: '120363044550799792', message: message, isGroup: true }, // Kirim ke grup Karkot Activity
+            { phone: '120363277167789572', message: message, isGroup: true }  // Kirim ke grup Laporan Gangguan
         ];
 
         try {
